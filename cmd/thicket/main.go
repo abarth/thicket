@@ -109,13 +109,12 @@ Commands:
 Run 'thicket <command> --help' for more information on a command.
 
 Examples:
-  thicket init --json --project TH
+  thicket init --project TH
   thicket add --interactive
-  thicket add --json --title "Fix bug" --priority 1
-  thicket list --json --status open
-  thicket show --json TH-abc123
-  thicket update --json --priority 2 TH-abc123
-  thicket close --json TH-abc123
-  thicket comment --json TH-abc123 "Working on this now"
-  thicket link --json TH-abc123 --blocked-by TH-def456`)
+  thicket add --title "Fix bug" --priority 1
+  thicket list --status open
+  thicket show TH-abc123
+  thicket update --priority 2 TH-abc123
+  thicket close TH-abc123
+  thicket comment TH-abc123 "Working on this now"`)
 }

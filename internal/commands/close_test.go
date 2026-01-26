@@ -117,8 +117,8 @@ func TestClose_JSONOutputIncludesFollowOnHint(t *testing.T) {
 	if !strings.Contains(output, "hint") {
 		t.Error("Close JSON output missing 'hint' field")
 	}
-	if !strings.Contains(output, "follow-on work") {
-		t.Error("Close JSON output hint should mention 'follow-on work'")
+	if !strings.Contains(output, "additional work") {
+		t.Error("Close JSON output hint should mention 'additional work'")
 	}
 	if !strings.Contains(output, ticketID) {
 		t.Errorf("Close JSON output hint should include ticket ID %s for --created-from", ticketID)

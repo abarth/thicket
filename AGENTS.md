@@ -44,13 +44,13 @@ go build -o thicket ./cmd/thicket
 
 ### When Completing Work
 
-1. **Think about follow-on work**: When you are done with the current ticket, think about
+1. **Verify no regressions**: Run `go test ./...`
+2. **Close the ticket**: `./thicket close --json <ID>`
+3. **Think about follow-on work**: When you are done with the current ticket, think about
    additional work that needs to be done. Create new tickets additional follow-on work:
    ```bash
    ./thicket add --json --title "Follow-on task" --created-from <CURRENT-ID>
    ```
-2. **Verify no regressions**: Run `go test ./...`
-3. **Close the ticket**: `./thicket close --json <ID>`
 
 ## Project Architecture
 

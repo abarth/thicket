@@ -73,7 +73,7 @@ func Close(args []string) error {
 		return err
 	}
 
-	hint := "Before moving on, consider: Did you discover any bugs, tasks, or improvements while working? If so, file tickets for follow-on work using: thicket add --title \"...\" --created-from " + t.ID
+	hint := "Before moving on, think about what additional work should be done and then file tickets for that work: thicket add --title \"...\" --created-from " + t.ID
 
 	if *jsonOutput {
 		return printJSON(SuccessResponse{
