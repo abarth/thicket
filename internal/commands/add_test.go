@@ -7,6 +7,66 @@ import (
 	"github.com/abarth/thicket/internal/storage"
 )
 
+func TestAdd(t *testing.T) {
+	dir, cleanup := setupTestProject(t)
+	defer cleanup()
+
+	if err := Init([]string{"--project", "TH"}); err != nil {
+		t.Fatalf("Init() error = %v", err)
+	}
+
+	err := Add([]string{"--title", "Test ticket", "--description", "A description", "--priority", "1"})
+	if err != nil {
+		t.Fatalf("Add() error = %v", err)
+	}
+
+	// Verify ticket was created
+	paths := config.GetPaths(dir)
+	store, err := storage.Open(paths)
+	if err != nil {
+		t.Fatalf("storage.Open() error = %v", err)
+	}
+	defer store.Close()
+
+	tickets, err := store.List(nil)
+	if err != nil {
+		t.Fatalf("store.List() error = %v", err)
+	}
+	if len(tickets) != 1 {
+		t.Fatalf("Expected 1 ticket, got %d", len(tickets))
+	}
+	if tickets[0].Title != "Test ticket" {
+		t.Errorf("Title = %q, want 'Test ticket'", tickets[0].Title)
+	}
+	if tickets[0].Priority != 1 {
+		t.Errorf("Priority = %d, want 1", tickets[0].Priority)
+	}
+}
+
+func TestAdd_MissingTitle(t *testing.T) {
+	_, cleanup := setupTestProject(t)
+	defer cleanup()
+
+	if err := Init([]string{"--project", "TH"}); err != nil {
+		t.Fatalf("Init() error = %v", err)
+	}
+
+	err := Add([]string{"--description", "No title"})
+	if err == nil {
+		t.Error("Add() expected error for missing --title")
+	}
+}
+
+func TestAdd_NotInitialized(t *testing.T) {
+	_, cleanup := setupTestProject(t)
+	defer cleanup()
+
+	err := Add([]string{"--title", "Test"})
+	if err == nil {
+		t.Error("Add() expected error for not initialized")
+	}
+}
+
 func TestAdd_Links(t *testing.T) {
 	dir, cleanup := setupTestProject(t)
 	defer cleanup()
