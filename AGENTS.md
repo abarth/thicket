@@ -121,13 +121,13 @@ go test ./internal/ticket -run TestValidateID -v
 
 ## Manual Testing
 
-**IMPORTANT**: Do NOT use the production `.thicket/` directory for manual testing. The `.thicket/tickets.jsonl` file is tracked by git and contains real project tickets.
+**IMPORTANT**: Do NOT run `./thicket` commands in the main project directory for manual testing. Running commands like `./thicket add` or `./thicket link` from the project root will modify the production ticket database (`.thicket/tickets.jsonl`), which is tracked by git and contains real project tickets.
 
 ### For Automated Tests
 Use `go test ./...` — the test suite creates isolated temporary directories and does not touch the production data.
 
 ### For Manual/Ad-hoc Testing
-If you need to manually test Thicket commands, create a separate test instance:
+If you need to manually test Thicket commands, you **must** create a separate test instance in a different directory:
 
 ```bash
 # Create a test directory
@@ -147,6 +147,7 @@ rm -rf /tmp/thicket-test
 ```
 
 ### Why This Matters
+- Running `./thicket` from the project root modifies the production database
 - The production `.thicket/tickets.jsonl` is version-controlled and shared
 - Test data would pollute the real ticket list
 - Corrupted test data could break the production instance
