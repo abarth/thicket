@@ -9,7 +9,7 @@ This project uses **Thicket** to track work. Before starting any task, check the
 go build -o thicket ./cmd/thicket
 
 # See what needs to be done
-./thicket list
+./thicket list --status open
 
 # Get detailed guidance
 ./thicket quickstart
@@ -19,44 +19,43 @@ go build -o thicket ./cmd/thicket
 
 ### At the Start of Each Session
 
-1. **Check open tickets**: Run `./thicket list` to see current work items
+1. **Check open tickets**: Run `./thicket list --status open` to see current work items
 2. **Pick a ticket**: Choose the highest priority (lowest number) open ticket
-3. **Review the ticket**: Run `./thicket show <ID>` to understand the task
+3. **Review the ticket**: Run `./thicket show --json <ID>` to understand the task
 
 ### While Working
 
 1. **Create tickets for new work**: When you discover bugs, tasks, or improvements:
    ```bash
-   ./thicket add --title "Brief description" --priority N
+   ./thicket add --json --title "Brief description" --priority N
    ```
 
 2. **Add context to tickets**: Use descriptions for complex issues:
    ```bash
-   ./thicket add --title "Fix auth timeout" --description "The auth module times out after 30s but should wait 60s. See auth.go:142" --priority 1
+   ./thicket add --json --title "Fix auth timeout" --description "The auth module times out after 30s but should wait 60s. See auth.go:142" --priority 1
    ```
 
 3. **Add comments to track progress**: Document your findings and progress:
    ```bash
-   ./thicket comment <ID> "Found root cause: missing nil check"
-   ./thicket comment <ID> "Fix implemented, running tests"
+   ./thicket comment --json <ID> "Found root cause: missing nil check"
+   ./thicket comment --json <ID> "Fix implemented, running tests"
    ```
 
 4. **Link tickets with dependencies**: Track blocking relationships:
    ```bash
-   ./thicket link --blocked-by <BLOCKER-ID> <BLOCKED-ID>
-   ./thicket link --created-from <PARENT-ID> <CHILD-ID>
+   ./thicket link --json --blocked-by <BLOCKER-ID> <BLOCKED-ID>
+   ./thicket link --json --created-from <PARENT-ID> <CHILD-ID>
    ```
 
 5. **Update tickets as needed**:
    ```bash
-   ./thicket update --description "New information" <ID>
+   ./thicket update --json --description "New information" <ID>
    ```
 
 ### When Completing Work
 
-1. **Close the ticket**: `./thicket close <ID>`
+1. **Close the ticket**: `./thicket close --json <ID>`
 2. **Verify no regressions**: Run `go test ./...`
-3. **Check for follow-up work**: `./thicket list`
 
 ## Priority Guidelines
 
@@ -127,12 +126,12 @@ mkdir -p /tmp/thicket-test
 cd /tmp/thicket-test
 
 # Initialize a test instance
-/path/to/thicket init --project TS
+/path/to/thicket init --project TS --json
 
 # Now you can safely test commands
-/path/to/thicket add --title "Test ticket" --priority 1
-/path/to/thicket list
-/path/to/thicket link --blocked-by TS-abc123 TS-def456
+/path/to/thicket add --json --title "Test ticket" --priority 1
+/path/to/thicket list --json
+/path/to/thicket link --json --blocked-by TS-abc123 TS-def456
 
 # Clean up when done
 rm -rf /tmp/thicket-test
@@ -160,7 +159,7 @@ rm -rf /tmp/thicket-test
 ## Common Issues
 
 ### "Thicket is not initialized"
-Run `./thicket init --project TH` or ensure you're in the project root.
+Run `./thicket init --json --project TH` or ensure you're in the project root.
 
 ### SQLite cache out of sync
 Delete `.thicket/cache.db` - it will rebuild automatically.

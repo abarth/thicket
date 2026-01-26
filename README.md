@@ -45,6 +45,16 @@ thicket update --priority 2 TH-abc123
 thicket close TH-abc123
 ```
 
+## JSON Output
+
+All commands support a `--json` flag for machine-readable output. This is useful for integration with other tools and agents.
+
+```bash
+thicket list --json
+thicket show --json TH-abc123
+thicket add --title "New task" --json
+```
+
 ## Commands
 
 ### `thicket init`

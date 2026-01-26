@@ -2,6 +2,7 @@
 package commands
 
 import (
+	"encoding/json"
 	"flag"
 	"fmt"
 	"io"
@@ -15,6 +16,28 @@ import (
 	"github.com/abarth/thicket/internal/storage"
 	"github.com/abarth/thicket/internal/ticket"
 )
+
+// TicketDetails holds all information about a ticket for display.
+type TicketDetails struct {
+	Ticket      *ticket.Ticket    `json:"ticket"`
+	Comments    []*ticket.Comment `json:"comments"`
+	BlockedBy   []*ticket.Ticket  `json:"blocked_by"`
+	Blocking    []*ticket.Ticket  `json:"blocking"`
+	CreatedFrom *ticket.Ticket    `json:"created_from"`
+}
+
+// SuccessResponse is a common JSON response for mutating commands.
+type SuccessResponse struct {
+	Success bool   `json:"success"`
+	ID      string `json:"id,omitempty"`
+	Message string `json:"message,omitempty"`
+}
+
+func printJSON(v interface{}) error {
+	enc := json.NewEncoder(os.Stdout)
+	enc.SetIndent("", "  ")
+	return enc.Encode(v)
+}
 
 // ErrTicketNotFound is returned when a ticket cannot be found.
 // Deprecated: Use thickerr.TicketNotFound() for better error messages.
@@ -44,8 +67,9 @@ func wrapConfigError(err error) error {
 func Init(args []string) error {
 	fs := flag.NewFlagSet("init", flag.ExitOnError)
 	projectCode := fs.String("project", "", "Two-letter project code (e.g., TH)")
+	jsonOutput := fs.Bool("json", false, "Output in JSON format")
 	fs.Usage = func() {
-		fmt.Fprintln(os.Stderr, "Usage: thicket init --project <CODE>")
+		fmt.Fprintln(os.Stderr, "Usage: thicket init --project <CODE> [--json]")
 		fmt.Fprintln(os.Stderr, "\nInitialize a new Thicket project in the current directory.")
 		fmt.Fprintln(os.Stderr, "\nFlags:")
 		fs.PrintDefaults()
@@ -74,6 +98,13 @@ func Init(args []string) error {
 		return wrapConfigError(err)
 	}
 
+	if *jsonOutput {
+		return printJSON(SuccessResponse{
+			Success: true,
+			Message: fmt.Sprintf("Initialized Thicket project with code %s", *projectCode),
+		})
+	}
+
 	fmt.Printf("Initialized Thicket project with code %s\n", *projectCode)
 	return nil
 }
@@ -84,8 +115,9 @@ func Add(args []string) error {
 	title := fs.String("title", "", "Ticket title (required)")
 	description := fs.String("description", "", "Ticket description")
 	priority := fs.Int("priority", 0, "Ticket priority (lower = higher priority)")
+	jsonOutput := fs.Bool("json", false, "Output in JSON format")
 	fs.Usage = func() {
-		fmt.Fprintln(os.Stderr, "Usage: thicket add --title <TITLE> [--description <DESC>] [--priority <N>]")
+		fmt.Fprintln(os.Stderr, "Usage: thicket add --title <TITLE> [--description <DESC>] [--priority <N>] [--json]")
 		fmt.Fprintln(os.Stderr, "\nCreate a new ticket.")
 		fmt.Fprintln(os.Stderr, "\nFlags:")
 		fs.PrintDefaults()
@@ -125,6 +157,14 @@ func Add(args []string) error {
 		return err
 	}
 
+	if *jsonOutput {
+		return printJSON(SuccessResponse{
+			Success: true,
+			ID:      t.ID,
+			Message: fmt.Sprintf("Created ticket %s", t.ID),
+		})
+	}
+
 	fmt.Printf("Created ticket %s\n", t.ID)
 	return nil
 }
@@ -133,8 +173,9 @@ func Add(args []string) error {
 func List(args []string) error {
 	fs := flag.NewFlagSet("list", flag.ExitOnError)
 	statusFilter := fs.String("status", "", "Filter by status (open, closed)")
+	jsonOutput := fs.Bool("json", false, "Output in JSON format")
 	fs.Usage = func() {
-		fmt.Fprintln(os.Stderr, "Usage: thicket list [--status <STATUS>]")
+		fmt.Fprintln(os.Stderr, "Usage: thicket list [--status <STATUS>] [--json]")
 		fmt.Fprintln(os.Stderr, "\nList tickets, ordered by priority.")
 		fmt.Fprintln(os.Stderr, "\nFlags:")
 		fs.PrintDefaults()
@@ -170,6 +211,13 @@ func List(args []string) error {
 		return err
 	}
 
+	if *jsonOutput {
+		if tickets == nil {
+			tickets = []*ticket.Ticket{}
+		}
+		return printJSON(tickets)
+	}
+
 	if len(tickets) == 0 {
 		fmt.Println("No tickets found.")
 		return nil
@@ -196,8 +244,9 @@ func printTicketTable(w io.Writer, tickets []*ticket.Ticket) {
 // Show displays a single ticket.
 func Show(args []string) error {
 	fs := flag.NewFlagSet("show", flag.ExitOnError)
+	jsonOutput := fs.Bool("json", false, "Output in JSON format")
 	fs.Usage = func() {
-		fmt.Fprintln(os.Stderr, "Usage: thicket show <TICKET-ID>")
+		fmt.Fprintln(os.Stderr, "Usage: thicket show [--json] <TICKET-ID>")
 		fmt.Fprintln(os.Stderr, "\nDisplay details of a specific ticket.")
 	}
 
@@ -262,17 +311,12 @@ func Show(args []string) error {
 		CreatedFrom: createdFrom,
 	}
 
+	if *jsonOutput {
+		return printJSON(details)
+	}
+
 	printTicketDetail(os.Stdout, details)
 	return nil
-}
-
-// TicketDetails holds all information about a ticket for display.
-type TicketDetails struct {
-	Ticket      *ticket.Ticket
-	Comments    []*ticket.Comment
-	BlockedBy   []*ticket.Ticket
-	Blocking    []*ticket.Ticket
-	CreatedFrom *ticket.Ticket
 }
 
 func printTicketDetail(w io.Writer, details *TicketDetails) {
@@ -324,6 +368,7 @@ func Update(args []string) error {
 	description := fs.String("description", "", "New description")
 	priority := fs.Int("priority", -1, "New priority")
 	status := fs.String("status", "", "New status (open, closed)")
+	jsonOutput := fs.Bool("json", false, "Output in JSON format")
 	fs.Usage = func() {
 		fmt.Fprintln(os.Stderr, "Usage: thicket update [flags] <TICKET-ID>")
 		fmt.Fprintln(os.Stderr, "\nUpdate an existing ticket. Only specified fields are changed.")
@@ -401,6 +446,14 @@ func Update(args []string) error {
 		return err
 	}
 
+	if *jsonOutput {
+		return printJSON(SuccessResponse{
+			Success: true,
+			ID:      t.ID,
+			Message: fmt.Sprintf("Updated ticket %s", t.ID),
+		})
+	}
+
 	fmt.Printf("Updated ticket %s\n", t.ID)
 	return nil
 }
@@ -408,8 +461,9 @@ func Update(args []string) error {
 // Close marks a ticket as closed.
 func Close(args []string) error {
 	fs := flag.NewFlagSet("close", flag.ExitOnError)
+	jsonOutput := fs.Bool("json", false, "Output in JSON format")
 	fs.Usage = func() {
-		fmt.Fprintln(os.Stderr, "Usage: thicket close <TICKET-ID>")
+		fmt.Fprintln(os.Stderr, "Usage: thicket close [--json] <TICKET-ID>")
 		fmt.Fprintln(os.Stderr, "\nClose a ticket.")
 	}
 
@@ -447,6 +501,13 @@ func Close(args []string) error {
 	}
 
 	if t.Status == ticket.StatusClosed {
+		if *jsonOutput {
+			return printJSON(SuccessResponse{
+				Success: true,
+				ID:      t.ID,
+				Message: fmt.Sprintf("Ticket %s is already closed", t.ID),
+			})
+		}
 		fmt.Printf("Ticket %s is already closed\n", t.ID)
 		return nil
 	}
@@ -457,6 +518,14 @@ func Close(args []string) error {
 		return err
 	}
 
+	if *jsonOutput {
+		return printJSON(SuccessResponse{
+			Success: true,
+			ID:      t.ID,
+			Message: fmt.Sprintf("Closed ticket %s", t.ID),
+		})
+	}
+
 	fmt.Printf("Closed ticket %s\n", t.ID)
 	return nil
 }
@@ -464,8 +533,9 @@ func Close(args []string) error {
 // Comment adds a comment to a ticket.
 func Comment(args []string) error {
 	fs := flag.NewFlagSet("comment", flag.ExitOnError)
+	jsonOutput := fs.Bool("json", false, "Output in JSON format")
 	fs.Usage = func() {
-		fmt.Fprintln(os.Stderr, "Usage: thicket comment <TICKET-ID> \"Comment text\"")
+		fmt.Fprintln(os.Stderr, "Usage: thicket comment [--json] <TICKET-ID> \"Comment text\"")
 		fmt.Fprintln(os.Stderr, "\nAdd a comment to a ticket.")
 	}
 
@@ -520,6 +590,14 @@ func Comment(args []string) error {
 		return err
 	}
 
+	if *jsonOutput {
+		return printJSON(SuccessResponse{
+			Success: true,
+			ID:      c.ID,
+			Message: fmt.Sprintf("Added comment %s to ticket %s", c.ID, ticketID),
+		})
+	}
+
 	fmt.Printf("Added comment %s to ticket %s\n", c.ID, ticketID)
 	return nil
 }
@@ -529,6 +607,7 @@ func Link(args []string) error {
 	fs := flag.NewFlagSet("link", flag.ExitOnError)
 	blockedBy := fs.String("blocked-by", "", "Ticket that blocks this one")
 	createdFrom := fs.String("created-from", "", "Ticket this was created from")
+	jsonOutput := fs.Bool("json", false, "Output in JSON format")
 	fs.Usage = func() {
 		fmt.Fprintln(os.Stderr, "Usage: thicket link [flags] <TICKET-ID>")
 		fmt.Fprintln(os.Stderr, "\nCreate a dependency relationship between tickets.")
@@ -635,6 +714,20 @@ func Link(args []string) error {
 		default:
 			return err
 		}
+	}
+
+	if *jsonOutput {
+		msg := ""
+		if depType == ticket.DependencyBlockedBy {
+			msg = fmt.Sprintf("Ticket %s is now blocked by %s", ticketID, targetID)
+		} else {
+			msg = fmt.Sprintf("Ticket %s was created from %s", ticketID, targetID)
+		}
+		return printJSON(SuccessResponse{
+			Success: true,
+			ID:      dep.ID,
+			Message: msg,
+		})
 	}
 
 	if depType == ticket.DependencyBlockedBy {

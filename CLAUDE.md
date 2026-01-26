@@ -11,7 +11,7 @@ Read `AGENTS.md` before starting work on this project. It contains:
 ```bash
 # Build and check tickets
 go build -o thicket ./cmd/thicket
-./thicket list
+./thicket list --status open
 
 # Run tests
 go test ./...
