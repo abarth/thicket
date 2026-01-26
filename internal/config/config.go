@@ -11,6 +11,16 @@ import (
 	"github.com/abarth/thicket/internal/ticket"
 )
 
+var (
+	dataDirOverride string
+)
+
+// SetDataDir sets a custom directory for Thicket data.
+// If set, it overrides the default search for .thicket.
+func SetDataDir(dir string) {
+	dataDirOverride = dir
+}
+
 const (
 	ThicketDir  = ".thicket"
 	ConfigFile  = "config.json"
@@ -40,6 +50,15 @@ type Paths struct {
 
 // FindRoot locates the Thicket root directory by searching upward from the current directory.
 func FindRoot() (string, error) {
+	if dataDirOverride != "" {
+		abs, err := filepath.Abs(dataDirOverride)
+		if err != nil {
+			return "", fmt.Errorf("getting absolute path for data dir: %w", err)
+		}
+		// Return the parent directory so that GetPaths(root) works correctly
+		return filepath.Dir(abs), nil
+	}
+
 	dir, err := os.Getwd()
 	if err != nil {
 		return "", fmt.Errorf("getting working directory: %w", err)
@@ -61,7 +80,14 @@ func FindRoot() (string, error) {
 
 // GetPaths returns the paths for all Thicket files relative to the given root.
 func GetPaths(root string) Paths {
-	dir := filepath.Join(root, ThicketDir)
+	var dir string
+	if dataDirOverride != "" {
+		abs, _ := filepath.Abs(dataDirOverride)
+		dir = abs
+	} else {
+		dir = filepath.Join(root, ThicketDir)
+	}
+
 	return Paths{
 		Root:    root,
 		Dir:     dir,

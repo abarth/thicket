@@ -58,6 +58,13 @@ thicket show --json TH-abc123
 thicket add --title "New task" --json
 ```
 
+## Global Flags
+
+These flags can be used with almost all commands. They can be placed before or after the command.
+
+- `--data-dir <DIR>`: Specify a custom `.thicket` directory location. This is useful for manual testing without affecting the production ticket data.
+- `--json`: Output in JSON format for machine readability.
+
 ## Commands
 
 ### `thicket init`

@@ -41,6 +41,21 @@ func printJSON(v interface{}) error {
 	return enc.Encode(v)
 }
 
+// newFlagSet creates a new FlagSet with global flags already defined.
+func newFlagSet(name string) (*flag.FlagSet, *bool, *string) {
+	fs := flag.NewFlagSet(name, flag.ExitOnError)
+	jsonOutput := fs.Bool("json", false, "Output in JSON format")
+	dataDir := fs.String("data-dir", "", "Custom .thicket directory location")
+	return fs, jsonOutput, dataDir
+}
+
+// handleGlobalFlags sets global configuration based on flags.
+func handleGlobalFlags(dataDir string) {
+	if dataDir != "" {
+		config.SetDataDir(dataDir)
+	}
+}
+
 // ErrTicketNotFound is returned when a ticket cannot be found.
 // Deprecated: Use thickerr.TicketNotFound() for better error messages.
 var ErrTicketNotFound = thickerr.New("ticket not found")
@@ -67,11 +82,10 @@ func wrapConfigError(err error) error {
 
 // Init initializes a new Thicket project.
 func Init(args []string) error {
-	fs := flag.NewFlagSet("init", flag.ExitOnError)
+	fs, jsonOutput, dataDir := newFlagSet("init")
 	projectCode := fs.String("project", "", "Two-letter project code (e.g., TH)")
-	jsonOutput := fs.Bool("json", false, "Output in JSON format")
 	fs.Usage = func() {
-		fmt.Fprintln(os.Stderr, "Usage: thicket init --project <CODE> [--json]")
+		fmt.Fprintln(os.Stderr, "Usage: thicket init --project <CODE> [--json] [--data-dir <DIR>]")
 		fmt.Fprintln(os.Stderr, "\nInitialize a new Thicket project in the current directory.")
 		fmt.Fprintln(os.Stderr, "\nFlags:")
 		fs.PrintDefaults()
@@ -80,6 +94,8 @@ func Init(args []string) error {
 	if err := fs.Parse(args); err != nil {
 		return err
 	}
+
+	handleGlobalFlags(*dataDir)
 
 	if *projectCode == "" {
 		return thickerr.MissingRequired("project")
@@ -113,15 +129,14 @@ func Init(args []string) error {
 
 // Add creates a new ticket.
 func Add(args []string) error {
-	fs := flag.NewFlagSet("add", flag.ExitOnError)
+	fs, jsonOutput, dataDir := newFlagSet("add")
 	title := fs.String("title", "", "Ticket title")
 	description := fs.String("description", "", "Ticket description")
 	priority := fs.Int("priority", 0, "Ticket priority (lower = higher priority)")
 	interactive := fs.Bool("interactive", false, "Interactive mode")
 	fs.BoolVar(interactive, "i", false, "Interactive mode (shorthand)")
-	jsonOutput := fs.Bool("json", false, "Output in JSON format")
 	fs.Usage = func() {
-		fmt.Fprintln(os.Stderr, "Usage: thicket add [--interactive] [--title <TITLE>] [--description <DESC>] [--priority <N>] [--json]")
+		fmt.Fprintln(os.Stderr, "Usage: thicket add [--interactive] [--title <TITLE>] [--description <DESC>] [--priority <N>] [--json] [--data-dir <DIR>]")
 		fmt.Fprintln(os.Stderr, "\nCreate a new ticket.")
 		fmt.Fprintln(os.Stderr, "\nFlags:")
 		fs.PrintDefaults()
@@ -130,6 +145,8 @@ func Add(args []string) error {
 	if err := fs.Parse(args); err != nil {
 		return err
 	}
+
+	handleGlobalFlags(*dataDir)
 
 	if *interactive {
 		scanner := bufio.NewScanner(os.Stdin)
@@ -217,11 +234,10 @@ func Add(args []string) error {
 
 // List displays tickets.
 func List(args []string) error {
-	fs := flag.NewFlagSet("list", flag.ExitOnError)
+	fs, jsonOutput, dataDir := newFlagSet("list")
 	statusFilter := fs.String("status", "", "Filter by status (open, closed)")
-	jsonOutput := fs.Bool("json", false, "Output in JSON format")
 	fs.Usage = func() {
-		fmt.Fprintln(os.Stderr, "Usage: thicket list [--status <STATUS>] [--json]")
+		fmt.Fprintln(os.Stderr, "Usage: thicket list [--status <STATUS>] [--json] [--data-dir <DIR>]")
 		fmt.Fprintln(os.Stderr, "\nList tickets, ordered by priority.")
 		fmt.Fprintln(os.Stderr, "\nFlags:")
 		fs.PrintDefaults()
@@ -230,6 +246,8 @@ func List(args []string) error {
 	if err := fs.Parse(args); err != nil {
 		return err
 	}
+
+	handleGlobalFlags(*dataDir)
 
 	root, err := config.FindRoot()
 	if err != nil {
@@ -275,11 +293,10 @@ func List(args []string) error {
 
 // Ready displays open tickets that are not blocked by other open tickets.
 func Ready(args []string) error {
-	fs := flag.NewFlagSet("ready", flag.ExitOnError)
-	jsonOutput := fs.Bool("json", false, "Output in JSON format")
+	fs, jsonOutput, dataDir := newFlagSet("ready")
 	fs.Usage = func() {
-		fmt.Fprintln(os.Stderr, "Usage: thicket ready [--json]")
-		fmt.Fprintln(os.Stderr, "\nList open tickets that are not blocked by other open tickets, ordered by priority.")
+		fmt.Fprintln(os.Stderr, "Usage: thicket ready [--json] [--data-dir <DIR>]")
+		fmt.Fprintln(os.Stderr, "\nList actionable open tickets (not blocked by others).")
 		fmt.Fprintln(os.Stderr, "\nFlags:")
 		fs.PrintDefaults()
 	}
@@ -287,6 +304,8 @@ func Ready(args []string) error {
 	if err := fs.Parse(args); err != nil {
 		return err
 	}
+
+	handleGlobalFlags(*dataDir)
 
 	root, err := config.FindRoot()
 	if err != nil {
@@ -337,16 +356,19 @@ func printTicketTable(w io.Writer, tickets []*ticket.Ticket) {
 
 // Show displays a single ticket.
 func Show(args []string) error {
-	fs := flag.NewFlagSet("show", flag.ExitOnError)
-	jsonOutput := fs.Bool("json", false, "Output in JSON format")
+	fs, jsonOutput, dataDir := newFlagSet("show")
 	fs.Usage = func() {
-		fmt.Fprintln(os.Stderr, "Usage: thicket show [--json] <TICKET-ID>")
+		fmt.Fprintln(os.Stderr, "Usage: thicket show <TICKET-ID> [--json] [--data-dir <DIR>]")
 		fmt.Fprintln(os.Stderr, "\nDisplay details of a specific ticket.")
+		fmt.Fprintln(os.Stderr, "\nFlags:")
+		fs.PrintDefaults()
 	}
 
 	if err := fs.Parse(args); err != nil {
 		return err
 	}
+
+	handleGlobalFlags(*dataDir)
 
 	if fs.NArg() < 1 {
 		return thickerr.WithHint("Ticket ID is required", "Usage: thicket show <TICKET-ID>")
@@ -457,12 +479,11 @@ func printTicketDetail(w io.Writer, details *TicketDetails) {
 
 // Update modifies an existing ticket.
 func Update(args []string) error {
-	fs := flag.NewFlagSet("update", flag.ExitOnError)
+	fs, jsonOutput, dataDir := newFlagSet("update")
 	title := fs.String("title", "", "New title")
 	description := fs.String("description", "", "New description")
 	priority := fs.Int("priority", -1, "New priority")
 	status := fs.String("status", "", "New status (open, closed)")
-	jsonOutput := fs.Bool("json", false, "Output in JSON format")
 	fs.Usage = func() {
 		fmt.Fprintln(os.Stderr, "Usage: thicket update [flags] <TICKET-ID>")
 		fmt.Fprintln(os.Stderr, "\nUpdate an existing ticket. Only specified fields are changed.")
@@ -473,6 +494,8 @@ func Update(args []string) error {
 	if err := fs.Parse(args); err != nil {
 		return err
 	}
+
+	handleGlobalFlags(*dataDir)
 
 	if fs.NArg() < 1 {
 		return thickerr.WithHint("Ticket ID is required", "Usage: thicket update [flags] <TICKET-ID>")
@@ -554,16 +577,19 @@ func Update(args []string) error {
 
 // Close marks a ticket as closed.
 func Close(args []string) error {
-	fs := flag.NewFlagSet("close", flag.ExitOnError)
-	jsonOutput := fs.Bool("json", false, "Output in JSON format")
+	fs, jsonOutput, dataDir := newFlagSet("close")
 	fs.Usage = func() {
-		fmt.Fprintln(os.Stderr, "Usage: thicket close [--json] <TICKET-ID>")
+		fmt.Fprintln(os.Stderr, "Usage: thicket close <TICKET-ID> [--json] [--data-dir <DIR>]")
 		fmt.Fprintln(os.Stderr, "\nClose a ticket.")
+		fmt.Fprintln(os.Stderr, "\nFlags:")
+		fs.PrintDefaults()
 	}
 
 	if err := fs.Parse(args); err != nil {
 		return err
 	}
+
+	handleGlobalFlags(*dataDir)
 
 	if fs.NArg() < 1 {
 		return thickerr.WithHint("Ticket ID is required", "Usage: thicket close <TICKET-ID>")
@@ -625,17 +651,21 @@ func Close(args []string) error {
 }
 
 // Comment adds a comment to a ticket.
+// Comment adds a comment to a ticket.
 func Comment(args []string) error {
-	fs := flag.NewFlagSet("comment", flag.ExitOnError)
-	jsonOutput := fs.Bool("json", false, "Output in JSON format")
+	fs, jsonOutput, dataDir := newFlagSet("comment")
 	fs.Usage = func() {
-		fmt.Fprintln(os.Stderr, "Usage: thicket comment [--json] <TICKET-ID> \"Comment text\"")
+		fmt.Fprintln(os.Stderr, "Usage: thicket comment <TICKET-ID> <MESSAGE> [--json] [--data-dir <DIR>]")
 		fmt.Fprintln(os.Stderr, "\nAdd a comment to a ticket.")
+		fmt.Fprintln(os.Stderr, "\nFlags:")
+		fs.PrintDefaults()
 	}
 
 	if err := fs.Parse(args); err != nil {
 		return err
 	}
+
+	handleGlobalFlags(*dataDir)
 
 	if fs.NArg() < 1 {
 		return thickerr.WithHint("Ticket ID is required", "Usage: thicket comment <TICKET-ID> \"Comment text\"")
@@ -697,11 +727,11 @@ func Comment(args []string) error {
 }
 
 // Link creates a dependency between two tickets.
+// Link creates a dependency between tickets.
 func Link(args []string) error {
-	fs := flag.NewFlagSet("link", flag.ExitOnError)
+	fs, jsonOutput, dataDir := newFlagSet("link")
 	blockedBy := fs.String("blocked-by", "", "Ticket that blocks this one")
 	createdFrom := fs.String("created-from", "", "Ticket this was created from")
-	jsonOutput := fs.Bool("json", false, "Output in JSON format")
 	fs.Usage = func() {
 		fmt.Fprintln(os.Stderr, "Usage: thicket link [flags] <TICKET-ID>")
 		fmt.Fprintln(os.Stderr, "\nCreate a dependency relationship between tickets.")
@@ -718,6 +748,8 @@ func Link(args []string) error {
 	if err := fs.Parse(args); err != nil {
 		return err
 	}
+
+	handleGlobalFlags(*dataDir)
 
 	if fs.NArg() < 1 {
 		return thickerr.WithHint("Ticket ID is required", "Usage: thicket link <TICKET-ID> --blocked-by <ID>")
