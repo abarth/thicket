@@ -30,7 +30,7 @@ thicket init --project TH
 thicket add --title "Fix login bug" --description "Users cannot log in" --priority 1
 
 # List open tickets
-thicket list
+thicket list --status open
 
 # Show a specific ticket
 thicket show TH-abc123
