@@ -76,6 +76,14 @@ func InvalidStatus(status string) *UserError {
 	)
 }
 
+// StatusReadySuggestion returns an error suggesting the ready command.
+func StatusReadySuggestion() *UserError {
+	return WithHint(
+		"'ready' is not a valid status",
+		"Did you mean 'thicket ready'? This command shows tickets that are ready to work on.",
+	)
+}
+
 // EmptyComment returns an error for empty comment content.
 func EmptyComment() *UserError {
 	return &UserError{

@@ -275,6 +275,23 @@ func TestList_InvalidStatus(t *testing.T) {
 	}
 }
 
+func TestList_StatusReady(t *testing.T) {
+	_, cleanup := setupTestProject(t)
+	defer cleanup()
+
+	if err := Init([]string{"--project", "TH"}); err != nil {
+		t.Fatalf("Init() error = %v", err)
+	}
+
+	err := List([]string{"--status", "ready"})
+	if err == nil {
+		t.Error("List() expected error for 'ready' status")
+	}
+	if !strings.Contains(err.Error(), "thicket ready") {
+		t.Errorf("List() error should suggest 'thicket ready' command, got: %v", err)
+	}
+}
+
 func TestList_Empty(t *testing.T) {
 	_, cleanup := setupTestProject(t)
 	defer cleanup()

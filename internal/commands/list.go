@@ -41,6 +41,9 @@ func List(args []string) error {
 
 	var status *ticket.Status
 	if *statusFilter != "" {
+		if *statusFilter == "ready" {
+			return thickerr.StatusReadySuggestion()
+		}
 		s := ticket.Status(*statusFilter)
 		if err := ticket.ValidateStatus(s); err != nil {
 			return thickerr.InvalidStatus(*statusFilter)
