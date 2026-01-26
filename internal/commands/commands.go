@@ -21,7 +21,7 @@ import (
 var ErrTicketNotFound = thickerr.New("ticket not found")
 
 // normalizeTicketID normalizes a ticket ID to the canonical format:
-// uppercase project code, lowercase hex portion (e.g., "th-ABCDEF" -> "TH-abcdef").
+// uppercase project code, lowercase alphanumeric portion (e.g., "th-Z1Y2X3" -> "TH-z1y2x3").
 func normalizeTicketID(id string) string {
 	if len(id) < 3 || id[2] != '-' {
 		return id

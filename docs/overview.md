@@ -7,7 +7,7 @@ this file. This file will be tracked by git and shared by everyone working on th
 into a local SQLite database, which will need to be synchronized with `tickets.jsonl`. The CLI tool will automatically synchronize
 the SQLite database with the JSONL file on every command to ensure the local cache remains up to date.
 
-The tickets will be identified by a two-letter project code and a six-character random hex string (e.g., `TH-abcdef`),
+The tickets will be identified by a two-letter project code and a six-character random alphanumeric string (e.g., `TH-abcdef`),
 which prevents people working on the project in parallel from creating colliding ticket identifiers. The tickets will need to have a
 title, a description, and a status. The tickets will also need an integer priority as well as an issue type and an assignee. We will
 need to keep track of important timestamps related to the tickets, such as when the ticket was created, last updated, and closed.

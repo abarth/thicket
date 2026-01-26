@@ -166,7 +166,7 @@ Each ticket has:
 
 | Field | Description |
 |-------|-------------|
-| **ID** | Two-letter project code + six hex characters (e.g., `TH-a1b2c3`) |
+| **ID** | Two-letter project code + six alphanumeric characters (e.g., `TH-a1b2c3`) |
 | **Title** | Short summary of the issue |
 | **Description** | Detailed explanation |
 | **Status** | `open` or `closed` |

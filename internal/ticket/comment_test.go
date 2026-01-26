@@ -15,7 +15,7 @@ func TestGenerateCommentID(t *testing.T) {
 		t.Errorf("GenerateCommentID() = %q, want prefix TH-c", id)
 	}
 
-	if len(id) != 10 { // "TH-c" + 6 hex chars
+	if len(id) != 10 { // "TH-c" + 6 alphanumeric chars
 		t.Errorf("GenerateCommentID() = %q, want length 10", id)
 	}
 
@@ -51,7 +51,8 @@ func TestValidateCommentID(t *testing.T) {
 		{"TH-cabcdefg", true},
 		{"th-cabcdef", true},
 		{"TH-cABCDEF", true},
-		{"TH-cabcdeg", true}, // 'g' is not hex
+		{"TH-cabcdeg", false},
+		{"TH-cz1y2x3", false},
 		{"TH-abcdef", true},  // missing 'c' prefix
 		{"THX-cabcdef", true},
 	}

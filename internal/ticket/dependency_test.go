@@ -50,8 +50,9 @@ func TestValidateDependencyID(t *testing.T) {
 	}{
 		{"valid", "TH-d123abc", false},
 		{"valid other project", "AB-d000fff", false},
+		{"valid alphanumeric", "TH-dz1y2x3", false},
 		{"missing d prefix", "TH-123abc", true},
-		{"uppercase hex", "TH-dABCDEF", true},
+		{"uppercase alphanumeric", "TH-dABCDEF", true},
 		{"too short", "TH-d12345", true},
 		{"too long", "TH-d1234567", true},
 		{"lowercase project code", "th-d123abc", true},

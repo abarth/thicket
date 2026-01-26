@@ -41,7 +41,7 @@ func TestGenerateID(t *testing.T) {
 		t.Errorf("GenerateID() = %q, want prefix TH-", id)
 	}
 
-	if len(id) != 9 { // "TH-" + 6 hex chars
+	if len(id) != 9 { // "TH-" + 6 alphanumeric chars
 		t.Errorf("GenerateID() = %q, want length 9", id)
 	}
 
@@ -78,7 +78,8 @@ func TestValidateID(t *testing.T) {
 		{"TH-abcdefg", true},
 		{"th-abcdef", true},
 		{"TH-ABCDEF", true},
-		{"TH-abcdeg", true}, // 'g' is not hex
+		{"TH-abcdeg", false},
+		{"TH-z1y2x3", false},
 		{"THX-abcdef", true},
 	}
 

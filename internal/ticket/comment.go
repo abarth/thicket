@@ -3,7 +3,6 @@ package ticket
 
 import (
 	"crypto/rand"
-	"encoding/hex"
 	"errors"
 	"fmt"
 	"regexp"
@@ -13,7 +12,7 @@ import (
 
 // Comment represents a comment on a ticket.
 type Comment struct {
-	ID       string    `json:"id"`        // Format: TH-cXXXXXX (project code + c + 6 hex chars)
+	ID       string    `json:"id"`        // Format: TH-cXXXXXX (project code + c + 6 alphanumeric chars)
 	TicketID string    `json:"ticket_id"` // The ticket this comment belongs to
 	Content  string    `json:"content"`   // Comment text
 	Created  time.Time `json:"created"`   // Timestamp
@@ -24,8 +23,8 @@ var (
 	ErrInvalidCommentID = errors.New("invalid comment ID format")
 )
 
-// commentIDPattern matches valid comment IDs: two uppercase letters, hyphen, 'c', six hex chars.
-var commentIDPattern = regexp.MustCompile(`^[A-Z]{2}-c[a-f0-9]{6}$`)
+// commentIDPattern matches valid comment IDs: two uppercase letters, hyphen, 'c', six alphanumeric chars.
+var commentIDPattern = regexp.MustCompile(`^[A-Z]{2}-c[a-z0-9]{6}$`)
 
 // GenerateCommentID creates a new comment ID with the given project code.
 func GenerateCommentID(projectCode string) (string, error) {
@@ -33,12 +32,17 @@ func GenerateCommentID(projectCode string) (string, error) {
 		return "", err
 	}
 
-	bytes := make([]byte, 3)
-	if _, err := rand.Read(bytes); err != nil {
+	const charset = "abcdefghijklmnopqrstuvwxyz0123456789"
+	result := make([]byte, 6)
+	if _, err := rand.Read(result); err != nil {
 		return "", fmt.Errorf("generating random ID: %w", err)
 	}
 
-	return fmt.Sprintf("%s-c%s", projectCode, hex.EncodeToString(bytes)), nil
+	for i := 0; i < len(result); i++ {
+		result[i] = charset[result[i]%byte(len(charset))]
+	}
+
+	return fmt.Sprintf("%s-c%s", projectCode, string(result)), nil
 }
 
 // ValidateCommentID checks if a comment ID has the correct format.

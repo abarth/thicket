@@ -3,7 +3,6 @@ package ticket
 
 import (
 	"crypto/rand"
-	"encoding/hex"
 	"errors"
 	"fmt"
 	"regexp"
@@ -37,8 +36,8 @@ var (
 	ErrInvalidProjectCode = errors.New("project code must be exactly two uppercase letters")
 )
 
-// idPattern matches valid ticket IDs: two uppercase letters, hyphen, six hex chars.
-var idPattern = regexp.MustCompile(`^[A-Z]{2}-[a-f0-9]{6}$`)
+// idPattern matches valid ticket IDs: two uppercase letters, hyphen, six alphanumeric chars.
+var idPattern = regexp.MustCompile(`^[A-Z]{2}-[a-z0-9]{6}$`)
 
 // projectCodePattern matches valid project codes: exactly two uppercase letters.
 var projectCodePattern = regexp.MustCompile(`^[A-Z]{2}$`)
@@ -57,12 +56,17 @@ func GenerateID(projectCode string) (string, error) {
 		return "", err
 	}
 
-	bytes := make([]byte, 3)
-	if _, err := rand.Read(bytes); err != nil {
+	const charset = "abcdefghijklmnopqrstuvwxyz0123456789"
+	result := make([]byte, 6)
+	if _, err := rand.Read(result); err != nil {
 		return "", fmt.Errorf("generating random ID: %w", err)
 	}
 
-	return fmt.Sprintf("%s-%s", projectCode, hex.EncodeToString(bytes)), nil
+	for i := 0; i < len(result); i++ {
+		result[i] = charset[result[i]%byte(len(charset))]
+	}
+
+	return fmt.Sprintf("%s-%s", projectCode, string(result)), nil
 }
 
 // ValidateID checks if a ticket ID has the correct format.

@@ -3,7 +3,6 @@ package ticket
 
 import (
 	"crypto/rand"
-	"encoding/hex"
 	"errors"
 	"fmt"
 	"regexp"
@@ -23,7 +22,7 @@ const (
 
 // Dependency represents a relationship between two tickets.
 type Dependency struct {
-	ID           string         `json:"id"`             // Format: TH-dXXXXXX (project code + d + 6 hex chars)
+	ID           string         `json:"id"`             // Format: TH-dXXXXXX (project code + d + 6 alphanumeric chars)
 	FromTicketID string         `json:"from_ticket_id"` // The ticket that has the dependency
 	ToTicketID   string         `json:"to_ticket_id"`   // The ticket being referenced
 	Type         DependencyType `json:"type"`           // Type of dependency
@@ -38,8 +37,8 @@ var (
 	ErrDuplicateDependency   = errors.New("this dependency already exists")
 )
 
-// dependencyIDPattern matches valid dependency IDs: two uppercase letters, hyphen, 'd', six hex chars.
-var dependencyIDPattern = regexp.MustCompile(`^[A-Z]{2}-d[a-f0-9]{6}$`)
+// dependencyIDPattern matches valid dependency IDs: two uppercase letters, hyphen, 'd', six alphanumeric chars.
+var dependencyIDPattern = regexp.MustCompile(`^[A-Z]{2}-d[a-z0-9]{6}$`)
 
 // ValidateDependencyType checks if a dependency type is valid.
 func ValidateDependencyType(t DependencyType) error {
@@ -57,12 +56,17 @@ func GenerateDependencyID(projectCode string) (string, error) {
 		return "", err
 	}
 
-	bytes := make([]byte, 3)
-	if _, err := rand.Read(bytes); err != nil {
+	const charset = "abcdefghijklmnopqrstuvwxyz0123456789"
+	result := make([]byte, 6)
+	if _, err := rand.Read(result); err != nil {
 		return "", fmt.Errorf("generating random ID: %w", err)
 	}
 
-	return fmt.Sprintf("%s-d%s", projectCode, hex.EncodeToString(bytes)), nil
+	for i := 0; i < len(result); i++ {
+		result[i] = charset[result[i]%byte(len(charset))]
+	}
+
+	return fmt.Sprintf("%s-d%s", projectCode, string(result)), nil
 }
 
 // ValidateDependencyID checks if a dependency ID has the correct format.
