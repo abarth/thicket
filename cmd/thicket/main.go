@@ -111,10 +111,10 @@ Run 'thicket <command> --help' for more information on a command.
 Examples:
   thicket init --project TH
   thicket add --interactive
-  thicket add --title "Fix bug" --priority 1
+  thicket add --title "Fix bug" --type bug --priority 1 --assignee "Alice"
   thicket list --status open
   thicket show TH-abc123
-  thicket update --priority 2 TH-abc123
+  thicket update --type feature --priority 2 --assignee "Bob" TH-abc123
   thicket close TH-abc123
   thicket comment TH-abc123 "Working on this now"`)
 }

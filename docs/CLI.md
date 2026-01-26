@@ -27,14 +27,16 @@ thicket init --project <CODE>
 Create a new ticket.
 
 ```bash
-thicket add [--interactive] [--title <TITLE>] [--description <DESC>] [--priority <N>] [--label <LABEL>]... [--blocks <ID>] [--blocked-by <ID>] [--created-from <ID>]
+thicket add [--interactive] [--title <TITLE>] [--description <DESC>] [--type <TYPE>] [--priority <N>] [--assignee <NAME>] [--label <LABEL>]... [--blocks <ID>] [--blocked-by <ID>] [--created-from <ID>]
 ```
 
 **Flags:**
-- `--interactive`, `-i`: Enter interactive mode to provide ticket details. If title, description, or priority are not provided as flags, the tool will prompt for them.
+- `--interactive`, `-i`: Enter interactive mode to provide ticket details. If title, description, type, or priority are not provided as flags, the tool will prompt for them.
 - `--title`: Short summary of the ticket (required if not in interactive mode)
 - `--description`: Detailed explanation
+- `--type`: Ticket type (e.g., bug, feature, task, epic, cleanup)
 - `--priority`: Integer priority (default: 0, lower = higher priority)
+- `--assignee`: Name or ID of the person assigned to the ticket
 - `--label`: Add a label (can be specified multiple times)
 - `--blocks`: Mark an existing ticket as blocked by this new ticket
 - `--blocked-by`: Mark this new ticket as blocked by an existing ticket
@@ -42,8 +44,8 @@ thicket add [--interactive] [--title <TITLE>] [--description <DESC>] [--priority
 
 **Examples:**
 ```bash
-# Create a ticket with labels
-thicket add --title "Fix login bug" --label bug --label urgent
+# Create a ticket with labels and type
+thicket add --title "Fix login bug" --type bug --label bug --label urgent
 ```
 
 ### `thicket list`
@@ -80,6 +82,18 @@ Display details of a specific ticket, including any comments.
 
 ```bash
 thicket show <TICKET-ID>
+```
+
+**Example Output:**
+```text
+ID:          TH-abc123
+Title:       Fix login bug
+Type:        bug
+Status:      open
+Priority:    1
+Assignee:    Alice
+Created:     2026-01-25T10:00:00Z
+Updated:     2026-01-25T10:30:00Z
 ```
 
 ### `thicket comment`
@@ -131,15 +145,17 @@ thicket update [flags] <TICKET-ID>
 **Flags:**
 - `--title`: New title
 - `--description`: New description
+- `--type`: New type (e.g., bug, feature, task, epic, cleanup)
 - `--priority`: New priority
 - `--status`: New status (`open` or `closed`)
+- `--assignee`: Assign ticket to person (use empty string to clear)
 - `--add-label`: Add a label (can be specified multiple times)
 - `--remove-label`: Remove a label (can be specified multiple times)
 
 **Examples:**
 ```bash
-# Add a label to an existing ticket
-thicket update --add-label urgent TH-abc123
+# Add a label and set assignee
+thicket update --add-label urgent --assignee "Alice" TH-abc123
 
 # Remove a label
 thicket update --remove-label urgent TH-abc123
