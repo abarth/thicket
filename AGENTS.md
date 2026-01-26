@@ -74,7 +74,6 @@ thicket/
 │   └── ticket/            # Core ticket data model
 ├── docs/
 │   ├── overview.md        # Product vision and full specification
-│   └── mvp.md             # MVP implementation plan
 ├── .thicket/              # Thicket data directory
 │   ├── config.json        # Project code configuration
 │   ├── tickets.jsonl      # Ticket data (git-tracked)
@@ -85,8 +84,7 @@ thicket/
 
 ## Key Files to Understand
 
-- **docs/overview.md**: Full product vision including features not yet implemented (labels, dependencies, blocking relationships)
-- **docs/mvp.md**: What was implemented in the MVP and the technical design decisions
+- **docs/overview.md**: Full product vision and specification
 - **internal/ticket/ticket.go**: Core ticket data model - understand this first
 - **internal/ticket/comment.go**: Comment data model
 - **internal/storage/**: How data flows between JSONL (source of truth) and SQLite (cache)
@@ -107,27 +105,6 @@ go build -o thicket ./cmd/thicket
 go test ./internal/ticket -run TestValidateID -v
 ```
 
-## What's Implemented
-
-- Ticket CRUD operations (create, read, update, close)
-- Priority-based listing
-- Status filtering (open/closed)
-- JSONL storage with SQLite caching
-- Automatic sync between JSONL and SQLite
-- **Comments**: Adding timestamped notes to tickets (`./thicket comment <ID> "text"`)
-
-## What's NOT Yet Implemented
-
-See `docs/overview.md` for the full vision. Key missing features:
-
-- **Labels**: Tagging tickets for grouping
-- **Dependencies**: Tracking which tickets block others
-- **Created-from relationships**: Knowing which ticket spawned another
-- **Assignee**: Who is working on a ticket
-- **Issue type**: Bug, feature, task, etc.
-- **--json output**: Machine-readable output for tooling
-- **Unblocked query**: Finding tickets ready to work on
-
 ## Conventions
 
 1. **Ticket IDs**: Format is `XX-xxxxxx` (e.g., `TH-a1b2c3`). The project code is `TH`.
@@ -137,7 +114,6 @@ See `docs/overview.md` for the full vision. Key missing features:
 5. **Documentation**: When adding new features:
    - Update `README.md` with command usage and examples
    - Update the quickstart guide in `internal/commands/commands.go`
-   - Update this file (`AGENTS.md`) to reflect what's implemented
 6. **Help text**: When adding new commands:
    - Add the command to `printUsage()` in `cmd/thicket/main.go`
    - Include usage examples in the command's `--help` output

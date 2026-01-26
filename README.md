@@ -232,6 +232,5 @@ thicket/
 
 - [AGENTS.md](AGENTS.md) - Instructions for coding agents working on this project
 - [Overview](docs/overview.md) - Full product vision
-- [MVP Plan](docs/mvp.md) - Minimum viable product specification
 
 **For coding agents**: Start with `thicket quickstart` or read [AGENTS.md](AGENTS.md).
