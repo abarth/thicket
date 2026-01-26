@@ -59,31 +59,8 @@ your-project/
 
 Thicket is designed to help coding agents track their work. Run `thicket quickstart` for a workflow guide, or see [AGENTS.md](AGENTS.md) for detailed instructions.
 
-## Development
-
-```bash
-# Run tests
-go test ./...
-
-# Run tests with coverage
-go test ./... -cover
-```
-
-### Project Layout
-
-```
-thicket/
-├── cmd/thicket/           # CLI entry point
-├── internal/
-│   ├── commands/          # CLI command implementations
-│   ├── config/            # Configuration management
-│   ├── errors/            # User-friendly error types
-│   ├── storage/           # JSONL and SQLite operations
-│   └── ticket/            # Ticket data model
-└── docs/                  # Documentation
-```
-
 ## Documentation
 
 - [CLI Reference](docs/CLI.md) - Detailed command documentation
 - [AGENTS.md](AGENTS.md) - Instructions for coding agents working on this project
+- [Development](docs/development.md) - Information for developers of Thicket

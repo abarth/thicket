@@ -27,56 +27,30 @@ go build -o thicket ./cmd/thicket
 
 ### While Working
 
-1. **Create tickets for new work**: When you discover bugs, tasks, or improvements:
+1. **Discover additional work** In addition to resolving the current ticket, your
+   job is to discover additional work, such as bugs, tasks, refactorings, or
+   improvements. When you discover new work, file a ticket for a future agent to
+   work on:
    ```bash
-   # Basic use
-   ./thicket add --json --title "Brief description" --priority N
-
-   # Create and link in one command
    ./thicket add --json --title "Follow-on task" --created-from <CURRENT-ID>
-   ./thicket add --json --title "Urgent blocker" --blocks <EXISTING-ID> --priority 0
+   ./thicket add --json --title "Blocking issue" --blocks <EXISTING-ID>
    ```
 
-2. **Add context to tickets**: Use descriptions for complex issues:
-   ```bash
-   ./thicket add --json --title "Fix auth timeout" --description "The auth module times out after 30s but should wait 60s. See auth.go:142" --priority 1
-   ```
-
-3. **Add comments to track progress**: Document your findings and progress:
+2. **Add comments to track progress**: Document your findings and progress:
    ```bash
    ./thicket comment --json <ID> "Found root cause: missing nil check"
    ./thicket comment --json <ID> "Fix implemented, running tests"
    ```
 
-4. **Link tickets with dependencies**: Track blocking relationships:
-   ```bash
-   ./thicket link --json --blocked-by <BLOCKER-ID> <BLOCKED-ID>
-   ./thicket link --json --created-from <PARENT-ID> <CHILD-ID>
-   ```
-
-5. **Update tickets as needed**:
-   ```bash
-   ./thicket update --json --description "New information" <ID>
-   ```
-
 ### When Completing Work
 
-1. **Check for follow-on work**: If you discovered additional bugs, tasks, or improvements that you are not addressing in your current task, create new tickets for them. You can link them to the current ticket using `--created-from` directly when adding them.
+1. **Think about follow-on work**: When you are done with the current ticket, think about
+   additional work that needs to be done. Create new tickets additional follow-on work:
    ```bash
-   # Create follow-on ticket and link it to the current ticket in one step
-   ./thicket add --json --title "Follow-on task" --priority 2 --created-from <CURRENT-ID>
+   ./thicket add --json --title "Follow-on task" --created-from <CURRENT-ID>
    ```
-2. **Close the ticket**: `./thicket close --json <ID>`
-3. **Verify no regressions**: Run `go test ./...`
-
-## Priority Guidelines
-
-| Priority | Meaning | Examples |
-|----------|---------|----------|
-| 0 | Critical | Blocking bugs, broken builds |
-| 1 | High | Important features, significant bugs |
-| 2 | Normal | Regular tasks, minor bugs |
-| 3+ | Low | Nice-to-haves, future improvements |
+2. **Verify no regressions**: Run `go test ./...`
+3. **Close the ticket**: `./thicket close --json <ID>`
 
 ## Project Architecture
 
@@ -99,7 +73,7 @@ thicket/
 
 ## Key Files to Understand
 
-- **internal/ticket/ticket.go**: Core ticket data model - understand this first
+- **internal/ticket/ticket.go**: Core ticket data model
 - **internal/storage/**: How data flows between JSONL (source of truth) and SQLite (cache)
 - **.thicket/tickets.jsonl**: The production ticket database. **NEVER read or edit this file directly.** Always use the `thicket` CLI tool.
 
@@ -140,7 +114,6 @@ cd /tmp/thicket-test
 # Now you can safely test commands
 /path/to/thicket add --json --title "Test ticket" --priority 1
 /path/to/thicket list --json
-/path/to/thicket link --json --blocked-by TS-abc123 TS-def456
 
 # Clean up when done
 rm -rf /tmp/thicket-test
