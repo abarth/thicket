@@ -111,6 +111,14 @@ Close a ticket (shortcut for `update --status closed`).
 thicket close <TICKET-ID>
 ```
 
+### `thicket quickstart`
+
+Display a guide for coding agents on how to use Thicket effectively.
+
+```bash
+thicket quickstart
+```
+
 ## Ticket Format
 
 Each ticket has:
@@ -197,5 +205,8 @@ thicket/
 
 ## Documentation
 
+- [AGENTS.md](AGENTS.md) - Instructions for coding agents working on this project
 - [Overview](docs/overview.md) - Full product vision
 - [MVP Plan](docs/mvp.md) - Minimum viable product specification
+
+**For coding agents**: Start with `thicket quickstart` or read [AGENTS.md](AGENTS.md).

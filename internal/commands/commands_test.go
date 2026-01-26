@@ -518,3 +518,10 @@ func TestPrintTicketTable_LongTitle(t *testing.T) {
 		t.Error("Truncated title should end with ...")
 	}
 }
+
+func TestQuickstart(t *testing.T) {
+	err := Quickstart([]string{})
+	if err != nil {
+		t.Fatalf("Quickstart() error = %v", err)
+	}
+}

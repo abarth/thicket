@@ -393,3 +393,67 @@ func Close(args []string) error {
 	fmt.Printf("Closed ticket %s\n", t.ID)
 	return nil
 }
+
+// Quickstart prints guidance for coding agents on using Thicket.
+func Quickstart(args []string) error {
+	fmt.Print(`Thicket Quickstart for Coding Agents
+=====================================
+
+Thicket is a lightweight issue tracker designed to help you manage your work.
+Use it to track tasks, bugs, and features as you work on this project.
+
+GETTING STARTED
+---------------
+
+1. Check current tickets:
+   thicket list                    # Show all open tickets
+   thicket list --status open      # Show only open tickets
+
+2. Pick a ticket to work on (lowest priority number = most important):
+   thicket show TH-abc123          # View ticket details
+
+3. Create tickets as you discover work:
+   thicket add --title "Fix bug in auth" --priority 1
+   thicket add --title "Refactor later" --description "Details here" --priority 5
+
+4. Close tickets when done:
+   thicket close TH-abc123
+
+WORKFLOW
+--------
+
+When you start a session:
+  1. Run 'thicket list' to see what needs to be done
+  2. Pick the highest priority (lowest number) open ticket
+  3. Work on it, creating new tickets for issues you discover
+  4. Close the ticket when complete
+
+Priority guidelines:
+  0 = Critical, blocking other work
+  1 = High priority, do soon
+  2 = Normal priority
+  3+ = Lower priority, can wait
+
+BEST PRACTICES
+--------------
+
+- Create tickets for any work you defer ("I'll fix this later")
+- Use descriptive titles that explain WHAT needs to be done
+- Add descriptions for complex issues to capture context
+- Close tickets promptly when work is complete
+- Check 'thicket list' at the start of each session
+
+COMMANDS REFERENCE
+------------------
+
+  thicket list [--status open|closed]     List tickets by priority
+  thicket show <ID>                       View ticket details
+  thicket add --title "..." [options]     Create a new ticket
+  thicket update [options] <ID>           Modify a ticket
+  thicket close <ID>                      Mark ticket as closed
+  thicket quickstart                      Show this guide
+
+For more details, see AGENTS.md in the project root.
+`)
+	return nil
+}
