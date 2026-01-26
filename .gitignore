@@ -15,12 +15,12 @@
 # vendor/
 
 # Build artifacts
-bin/
-thicket
+/bin/
+/thicket
 
 # IDE files
-.idea/
-.vscode/
+/.idea/
+/.vscode/
 *.swp
 *.swo
 
