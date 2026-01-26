@@ -73,14 +73,18 @@ func Close(args []string) error {
 		return err
 	}
 
+	hint := "Before moving on, consider: Did you discover any bugs, tasks, or improvements while working? If so, file tickets for follow-on work using: thicket add --title \"...\" --created-from " + t.ID
+
 	if *jsonOutput {
 		return printJSON(SuccessResponse{
 			Success: true,
 			ID:      t.ID,
 			Message: fmt.Sprintf("Closed ticket %s", t.ID),
+			Hint:    hint,
 		})
 	}
 
 	fmt.Printf("Closed ticket %s\n", t.ID)
+	fmt.Printf("\nHint: %s\n", hint)
 	return nil
 }

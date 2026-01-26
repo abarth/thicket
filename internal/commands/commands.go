@@ -30,6 +30,7 @@ type SuccessResponse struct {
 	Success bool   `json:"success"`
 	ID      string `json:"id,omitempty"`
 	Message string `json:"message,omitempty"`
+	Hint    string `json:"hint,omitempty"`
 }
 
 func printJSON(v interface{}) error {
