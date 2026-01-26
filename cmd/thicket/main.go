@@ -92,6 +92,9 @@ Global Flags:
   --data-dir  Custom .thicket directory location
   --json      Output in JSON format (available for most commands)
 
+Environment Variables:
+  THICKET_DIR  Custom .thicket directory location (flag takes precedence)
+
 Commands:
   init        Initialize a new Thicket project
   add         Create a new ticket

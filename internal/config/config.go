@@ -16,9 +16,16 @@ var (
 )
 
 // SetDataDir sets a custom directory for Thicket data.
-// If set, it overrides the default search for .thicket.
+// If set, it overrides the default search for .thicket and the THICKET_DIR environment variable.
 func SetDataDir(dir string) {
 	dataDirOverride = dir
+}
+
+func getDataDir() string {
+	if dataDirOverride != "" {
+		return dataDirOverride
+	}
+	return os.Getenv("THICKET_DIR")
 }
 
 const (
@@ -50,8 +57,9 @@ type Paths struct {
 
 // FindRoot locates the Thicket root directory by searching upward from the current directory.
 func FindRoot() (string, error) {
-	if dataDirOverride != "" {
-		abs, err := filepath.Abs(dataDirOverride)
+	dataDir := getDataDir()
+	if dataDir != "" {
+		abs, err := filepath.Abs(dataDir)
 		if err != nil {
 			return "", fmt.Errorf("getting absolute path for data dir: %w", err)
 		}
@@ -81,8 +89,9 @@ func FindRoot() (string, error) {
 // GetPaths returns the paths for all Thicket files relative to the given root.
 func GetPaths(root string) Paths {
 	var dir string
-	if dataDirOverride != "" {
-		abs, _ := filepath.Abs(dataDirOverride)
+	dataDir := getDataDir()
+	if dataDir != "" {
+		abs, _ := filepath.Abs(dataDir)
 		dir = abs
 	} else {
 		dir = filepath.Join(root, ThicketDir)

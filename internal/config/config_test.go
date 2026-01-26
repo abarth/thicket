@@ -166,3 +166,54 @@ func TestFindRoot_NotInitialized(t *testing.T) {
 		t.Errorf("FindRoot() error = %v, want ErrNotInitialized", err)
 	}
 }
+
+func TestTHICKET_DIR(t *testing.T) {
+	// Reset global state after test
+	oldOverride := dataDirOverride
+	defer func() { dataDirOverride = oldOverride }()
+
+	// Reset environment after test
+	oldEnv := os.Getenv("THICKET_DIR")
+	defer os.Setenv("THICKET_DIR", oldEnv)
+
+	tempDir := t.TempDir()
+	customDir := filepath.Join(tempDir, "custom")
+	if err := os.MkdirAll(customDir, 0755); err != nil {
+		t.Fatalf("failed to create custom dir: %v", err)
+	}
+
+	// 1. Test THICKET_DIR environment variable
+	os.Setenv("THICKET_DIR", customDir)
+	dataDirOverride = "" // Ensure flag is not set
+
+	paths := GetPaths("/project")
+	if paths.Dir != customDir {
+		t.Errorf("expected Dir to be %q, got %q", customDir, paths.Dir)
+	}
+
+	// 2. Test flag takes precedence over THICKET_DIR
+	flagDir := filepath.Join(tempDir, "flag")
+	if err := os.MkdirAll(flagDir, 0755); err != nil {
+		t.Fatalf("failed to create flag dir: %v", err)
+	}
+	SetDataDir(flagDir)
+
+	paths = GetPaths("/project")
+	if paths.Dir != flagDir {
+		t.Errorf("expected Dir to be %q (flag), got %q", flagDir, paths.Dir)
+	}
+
+	// 3. Test FindRoot with THICKET_DIR
+	dataDirOverride = ""
+	os.Setenv("THICKET_DIR", customDir)
+
+	root, err := FindRoot()
+	if err != nil {
+		t.Fatalf("FindRoot failed: %v", err)
+	}
+	expectedRoot, _ := filepath.Abs(filepath.Dir(customDir))
+	if root != expectedRoot {
+		t.Errorf("expected Root to be %q, got %q", expectedRoot, root)
+	}
+}
+

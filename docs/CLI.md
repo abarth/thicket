@@ -8,7 +8,9 @@ These flags can be used with almost all commands. They can be placed before or a
 
 - `--data-dir <DIR>`: Specify a custom `.thicket` directory location. This is useful for manual testing without affecting the production ticket data.
 - `--json`: Output in JSON format for machine readability.
+## Environment Variables
 
+- `THICKET_DIR`: Specify a custom `.thicket` directory location. The `--data-dir` flag takes precedence over this environment variable.
 ## Commands
 
 ### `thicket init`
