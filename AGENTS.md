@@ -21,8 +21,8 @@ go build -o thicket ./cmd/thicket
 
 ### At the Start of Each Session
 
-1. **Check open tickets**: Run `./thicket ready` to see actionable work items. Use `./thicket list --status open` for a full list.
-2. **Pick a ticket**: Choose the highest priority (lowest number) open ticket
+1. **Check open tickets**: Run `./thicket ready` to see actionable work items.
+2. **Pick a ticket**: Choose the highest priority (lowest number) open ticket.
 3. **Review the ticket**: Run `./thicket show --json <ID>` to understand the task
 
 ### While Working
@@ -89,8 +89,6 @@ thicket/
 │   ├── errors/            # User-friendly error types
 │   ├── storage/           # Data persistence (JSONL + SQLite)
 │   └── ticket/            # Core ticket data model
-├── docs/
-│   ├── overview.md        # Product vision and full specification
 ├── .thicket/              # Thicket data directory
 │   ├── config.json        # Project code configuration
 │   ├── tickets.jsonl      # Ticket data (git-tracked)
@@ -101,9 +99,7 @@ thicket/
 
 ## Key Files to Understand
 
-- **docs/overview.md**: Full product vision and specification
 - **internal/ticket/ticket.go**: Core ticket data model - understand this first
-- **internal/ticket/comment.go**: Comment data model
 - **internal/storage/**: How data flows between JSONL (source of truth) and SQLite (cache)
 - **.thicket/tickets.jsonl**: The production ticket database. **NEVER read or edit this file directly.** Always use the `thicket` CLI tool.
 

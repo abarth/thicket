@@ -192,35 +192,6 @@ Display a guide for coding agents on how to use Thicket effectively.
 thicket quickstart
 ```
 
-## Ticket Format
-
-Each ticket has:
-
-| Field | Description |
-|-------|-------------|
-| **ID** | Two-letter project code + six alphanumeric characters (e.g., `TH-a1b2c3`) |
-| **Title** | Short summary of the issue |
-| **Description** | Detailed explanation |
-| **Status** | `open` or `closed` |
-| **Priority** | Integer (lower numbers = higher priority) |
-| **Created** | Timestamp when ticket was created |
-| **Updated** | Timestamp of last modification |
-| **Comments** | Timestamped notes added over time |
-| **Dependencies** | Links to blocking or related tickets |
-
-### Comments
-
-Comments have their own IDs (format: `TH-cXXXXXX`) and are linked to tickets by ticket ID. They are stored as separate lines in `tickets.jsonl` to keep diffs clean when adding comments.
-
-### Dependencies
-
-Dependencies track relationships between tickets:
-
-- **blocked_by**: Indicates that a ticket cannot proceed until another ticket is completed
-- **created_from**: Tracks that a ticket was created while working on another ticket
-
-Dependencies have their own IDs (format: `TH-dXXXXXX`) and are stored as separate lines in `tickets.jsonl`. Circular blocking dependencies are automatically prevented.
-
 ## Project Structure
 
 ```
@@ -286,28 +257,8 @@ This project uses Thicket to track work.
 
 ## Work Management
 
-- Run `thicket list` to see what needs to be done.
 - Run `thicket quickstart` for a guide on the Thicket workflow.
-```
-
-Example workflow:
-
-```bash
-# Agent discovers a bug
-thicket add --title "Fix null pointer in auth module" --priority 0
-
-# Agent starts working, adds a comment with findings
-thicket comment TH-abc123 "Root cause: missing nil check in validateUser()"
-
-# Agent finds related issue while investigating
-thicket add --title "Refactor auth error handling" --priority 2
-
-# Agent fixes the bug, documents the fix
-thicket comment TH-abc123 "Fixed by adding nil check at auth.go:142"
-thicket close TH-abc123
-
-# Check remaining work
-thicket list --status open
+- Run `thicket ready` to see what needs to be done.
 ```
 
 ## Development
@@ -341,6 +292,5 @@ thicket/
 ## Documentation
 
 - [AGENTS.md](AGENTS.md) - Instructions for coding agents working on this project
-- [Overview](docs/overview.md) - Full product vision
 
 **For coding agents**: Start with `thicket quickstart` or read [AGENTS.md](AGENTS.md).
