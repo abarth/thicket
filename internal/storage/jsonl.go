@@ -16,40 +16,10 @@ type rawRecord struct {
 	FromTicketID string `json:"from_ticket_id"` // Present for dependencies
 }
 
-// ReadJSONL reads all tickets from a JSONL file.
+// ReadJSONL reads all tickets from a JSONL file, ignoring comments and dependencies.
 func ReadJSONL(path string) ([]*ticket.Ticket, error) {
-	file, err := os.Open(path)
-	if err != nil {
-		if os.IsNotExist(err) {
-			return nil, nil
-		}
-		return nil, fmt.Errorf("opening tickets file: %w", err)
-	}
-	defer file.Close()
-
-	var tickets []*ticket.Ticket
-	scanner := bufio.NewScanner(file)
-
-	lineNum := 0
-	for scanner.Scan() {
-		lineNum++
-		line := scanner.Text()
-		if line == "" {
-			continue
-		}
-
-		var t ticket.Ticket
-		if err := json.Unmarshal([]byte(line), &t); err != nil {
-			return nil, fmt.Errorf("parsing line %d: %w", lineNum, err)
-		}
-		tickets = append(tickets, &t)
-	}
-
-	if err := scanner.Err(); err != nil {
-		return nil, fmt.Errorf("reading tickets file: %w", err)
-	}
-
-	return tickets, nil
+	tickets, _, _, err := ReadAllJSONL(path)
+	return tickets, err
 }
 
 // AppendJSONL appends a single ticket to the JSONL file.

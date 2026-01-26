@@ -97,8 +97,8 @@ func (s *Store) Add(t *ticket.Ticket) error {
 
 // Update modifies an existing ticket in both JSONL and SQLite.
 func (s *Store) Update(t *ticket.Ticket) error {
-	// Read all tickets, update the matching one, and rewrite
-	tickets, err := ReadJSONL(s.paths.Tickets)
+	// Read everything, update the matching ticket, and rewrite
+	tickets, comments, dependencies, err := ReadAllJSONL(s.paths.Tickets)
 	if err != nil {
 		return err
 	}
@@ -116,7 +116,7 @@ func (s *Store) Update(t *ticket.Ticket) error {
 		return fmt.Errorf("ticket %s not found", t.ID)
 	}
 
-	if err := WriteJSONL(s.paths.Tickets, tickets); err != nil {
+	if err := WriteAllJSONL(s.paths.Tickets, tickets, comments, dependencies); err != nil {
 		return err
 	}
 

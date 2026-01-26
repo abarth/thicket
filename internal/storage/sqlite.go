@@ -255,8 +255,17 @@ func (db *DB) ListTickets(status *ticket.Status) ([]*ticket.Ticket, error) {
 		}
 
 		t.Status = ticket.Status(statusStr)
-		t.Created, _ = time.Parse(time.RFC3339Nano, created)
-		t.Updated, _ = time.Parse(time.RFC3339Nano, updated)
+		createdTime, err := time.Parse(time.RFC3339Nano, created)
+		if err != nil {
+			return nil, fmt.Errorf("parsing ticket created time: %w", err)
+		}
+		t.Created = createdTime
+
+		updatedTime, err := time.Parse(time.RFC3339Nano, updated)
+		if err != nil {
+			return nil, fmt.Errorf("parsing ticket updated time: %w", err)
+		}
+		t.Updated = updatedTime
 
 		tickets = append(tickets, &t)
 	}
@@ -271,6 +280,42 @@ func (db *DB) ListTickets(status *ticket.Status) ([]*ticket.Ticket, error) {
 // GetAllTickets retrieves all tickets from the database.
 func (db *DB) GetAllTickets() ([]*ticket.Ticket, error) {
 	return db.ListTickets(nil)
+}
+
+// GetAllComments retrieves all comments from the database.
+func (db *DB) GetAllComments() ([]*ticket.Comment, error) {
+	rows, err := db.conn.Query(`
+		SELECT id, ticket_id, content, created
+		FROM comments
+		ORDER BY created ASC
+	`)
+	if err != nil {
+		return nil, fmt.Errorf("querying comments: %w", err)
+	}
+	defer rows.Close()
+
+	var comments []*ticket.Comment
+	for rows.Next() {
+		var c ticket.Comment
+		var created string
+
+		if err := rows.Scan(&c.ID, &c.TicketID, &c.Content, &created); err != nil {
+			return nil, fmt.Errorf("scanning comment: %w", err)
+		}
+
+		createdTime, err := time.Parse(time.RFC3339Nano, created)
+		if err != nil {
+			return nil, fmt.Errorf("parsing comment time: %w", err)
+		}
+		c.Created = createdTime
+		comments = append(comments, &c)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("iterating comments: %w", err)
+	}
+
+	return comments, nil
 }
 
 // InsertComment adds a new comment to the database.
@@ -311,7 +356,11 @@ func (db *DB) GetCommentsForTicket(ticketID string) ([]*ticket.Comment, error) {
 			return nil, fmt.Errorf("scanning comment: %w", err)
 		}
 
-		c.Created, _ = time.Parse(time.RFC3339Nano, created)
+		createdTime, err := time.Parse(time.RFC3339Nano, created)
+		if err != nil {
+			return nil, fmt.Errorf("parsing comment time: %w", err)
+		}
+		c.Created = createdTime
 		comments = append(comments, &c)
 	}
 
@@ -519,7 +568,11 @@ func scanDependencies(rows *sql.Rows) ([]*ticket.Dependency, error) {
 		}
 
 		d.Type = ticket.DependencyType(depType)
-		d.Created, _ = time.Parse(time.RFC3339Nano, created)
+		createdTime, err := time.Parse(time.RFC3339Nano, created)
+		if err != nil {
+			return nil, fmt.Errorf("parsing dependency time: %w", err)
+		}
+		d.Created = createdTime
 		dependencies = append(dependencies, &d)
 	}
 

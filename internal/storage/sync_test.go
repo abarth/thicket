@@ -590,3 +590,105 @@ func TestStore_SyncDependenciesOnReopen(t *testing.T) {
 		t.Fatalf("GetBlockers() returned %d, want 1", len(blockers))
 	}
 }
+
+func TestStore_UpdatePreservesCommentsAndDependencies(t *testing.T) {
+	paths, cleanup := setupTestProject(t)
+	defer cleanup()
+
+	store, err := Open(paths)
+	if err != nil {
+		t.Fatalf("Open() error = %v", err)
+	}
+
+	// 1. Add a ticket
+	tk, err := ticket.New("TH", "Test ticket", "Description", 1)
+	if err != nil {
+		t.Fatalf("ticket.New() error = %v", err)
+	}
+	if err := store.Add(tk); err != nil {
+		t.Fatalf("Add() error = %v", err)
+	}
+
+	// 2. Add a comment
+	comment := &ticket.Comment{
+		ID:       "TH-c123456",
+		TicketID: tk.ID,
+		Content:  "Test comment",
+	}
+	if err := store.AddComment(comment); err != nil {
+		t.Fatalf("AddComment() error = %v", err)
+	}
+
+	// 3. Add a dependency
+	tk2, err := ticket.New("TH", "Blocked ticket", "Description", 1)
+	if err != nil {
+		t.Fatalf("ticket.New() error = %v", err)
+	}
+	if err := store.Add(tk2); err != nil {
+		t.Fatalf("Add() error = %v", err)
+	}
+	dep := &ticket.Dependency{
+		ID:           "TH-d123456",
+		FromTicketID: tk2.ID,
+		ToTicketID:   tk.ID,
+		Type:         ticket.DependencyBlockedBy,
+	}
+	if err := store.AddDependency(dep); err != nil {
+		t.Fatalf("AddDependency() error = %v", err)
+	}
+
+	// 4. Update the ticket
+	newTitle := "Updated title"
+	if err := tk.Update(&newTitle, nil, nil, nil); err != nil {
+		t.Fatalf("tk.Update() error = %v", err)
+	}
+	if err := store.Update(tk); err != nil {
+		t.Fatalf("store.Update() error = %v", err)
+	}
+
+	store.Close()
+
+	// MUST DELETE CACHE TO FORCE RE-SYNC FROM JSONL
+	if err := os.Remove(paths.Cache); err != nil {
+		t.Fatalf("Failed to remove cache: %v", err)
+	}
+
+	// 5. Open a new store (re-sync from JSONL)
+	store2, err := Open(paths)
+	if err != nil {
+		t.Fatalf("Open() (again) error = %v", err)
+	}
+	defer store2.Close()
+
+	// 6. Check if comment is still there
+	comments, err := store2.GetComments(tk.ID)
+	if err != nil {
+		t.Fatalf("GetComments() error = %v", err)
+	}
+	if len(comments) == 0 {
+		t.Error("Comment was lost after update")
+	} else {
+		if comments[0].Content != "Test comment" {
+			t.Errorf("Comment content lost. Got %q, want %q", comments[0].Content, "Test comment")
+		}
+		if comments[0].TicketID != tk.ID {
+			t.Errorf("Comment TicketID lost. Got %q, want %q", comments[0].TicketID, tk.ID)
+		}
+	}
+
+	// 7. Check if dependency is still there
+	deps, err := store2.db.GetDependenciesFrom(tk2.ID)
+	if err != nil {
+		t.Fatalf("GetDependenciesFrom() error = %v", err)
+	}
+	if len(deps) == 0 {
+		t.Error("Dependency was lost after update")
+	} else {
+		if deps[0].ToTicketID != tk.ID {
+			t.Errorf("Dependency ToTicketID lost. Got %q, want %q", deps[0].ToTicketID, tk.ID)
+		}
+		if deps[0].Type != ticket.DependencyBlockedBy {
+			t.Errorf("Dependency type lost. Got %q, want %q", deps[0].Type, ticket.DependencyBlockedBy)
+		}
+	}
+}
