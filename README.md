@@ -27,7 +27,7 @@ go build -o thicket ./cmd/thicket
 thicket init --project TH
 
 # Create a ticket with labels
-thicket add --title "Fix login bug" --type bug --priority 1 --label bug
+thicket add --title "Fix login bug" --type bug --priority 1 --label security
 
 # List ready tickets (not blocked by other open tickets)
 thicket ready
