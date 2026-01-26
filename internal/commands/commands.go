@@ -80,22 +80,18 @@ func wrapConfigError(err error) error {
 
 func printTicketTable(w io.Writer, tickets []*ticket.Ticket) {
 	tw := tabwriter.NewWriter(w, 0, 0, 2, ' ', 0)
-	fmt.Fprintln(tw, "ID\tPRI\tTYPE\tSTATUS\tASSIGNEE\tTITLE")
-	fmt.Fprintln(tw, "--\t---\t----\t------\t--------\t-----")
+	fmt.Fprintln(tw, "ID\tPRI\tTYPE\tSTATUS\tTITLE")
+	fmt.Fprintln(tw, "--\t---\t----\t------\t-----")
 	for _, t := range tickets {
 		title := t.Title
 		if len(title) > 50 {
 			title = title[:47] + "..."
 		}
-		assignee := t.Assignee
-		if assignee == "" {
-			assignee = "-"
-		}
 		issueType := string(t.Type)
 		if issueType == "" {
 			issueType = "-"
 		}
-		fmt.Fprintf(tw, "%s\t%d\t%s\t%s\t%s\t%s\n", t.ID, t.Priority, issueType, t.Status, assignee, title)
+		fmt.Fprintf(tw, "%s\t%d\t%s\t%s\t%s\n", t.ID, t.Priority, issueType, t.Status, title)
 	}
 	tw.Flush()
 }
