@@ -51,7 +51,7 @@ func TestStore_AddAndGet(t *testing.T) {
 	}
 	defer store.Close()
 
-	tk, err := ticket.New("TH", "Test ticket", "Description", 1, nil, "")
+	tk, err := ticket.New("TH", "Test ticket", "Description", ticket.TypeTask, 1, nil, "")
 	if err != nil {
 		t.Fatalf("ticket.New() error = %v", err)
 	}
@@ -86,7 +86,7 @@ func TestStore_Update(t *testing.T) {
 	}
 	defer store.Close()
 
-	tk, err := ticket.New("TH", "Original title", "Description", 1, nil, "")
+	tk, err := ticket.New("TH", "Original title", "Description", ticket.TypeTask, 1, nil, "")
 	if err != nil {
 		t.Fatalf("ticket.New() error = %v", err)
 	}
@@ -96,7 +96,7 @@ func TestStore_Update(t *testing.T) {
 	}
 
 	newTitle := "Updated title"
-	if err := tk.Update(&newTitle, nil, nil, nil, nil, nil, nil); err != nil {
+	if err := tk.Update(&newTitle, nil, nil, nil, nil, nil, nil, nil); err != nil {
 		t.Fatalf("ticket.Update() error = %v", err)
 	}
 
@@ -126,7 +126,7 @@ func TestStore_List(t *testing.T) {
 
 	// Add some tickets
 	for i := 0; i < 3; i++ {
-		tk, err := ticket.New("TH", "Ticket", "", i, nil, "")
+		tk, err := ticket.New("TH", "Ticket", "", ticket.TypeTask, i, nil, "")
 		if err != nil {
 			t.Fatalf("ticket.New() error = %v", err)
 		}
@@ -204,7 +204,7 @@ func TestStore_SyncOnReopen(t *testing.T) {
 		t.Fatalf("Open() error = %v", err)
 	}
 
-	tk, _ := ticket.New("TH", "Initial", "", 1, nil, "")
+	tk, _ := ticket.New("TH", "Initial", "", ticket.TypeTask, 1, nil, "")
 	if err := store.Add(tk); err != nil {
 		t.Fatalf("Add() error = %v", err)
 	}
@@ -249,7 +249,7 @@ func TestStore_AddAndGetComments(t *testing.T) {
 	}
 	defer store.Close()
 
-	tk, err := ticket.New("TH", "Test ticket", "Description", 1, nil, "")
+	tk, err := ticket.New("TH", "Test ticket", "Description", ticket.TypeTask, 1, nil, "")
 	if err != nil {
 		t.Fatalf("ticket.New() error = %v", err)
 	}
@@ -317,7 +317,7 @@ func TestStore_MultipleComments(t *testing.T) {
 	}
 	defer store.Close()
 
-	tk, _ := ticket.New("TH", "Test ticket", "", 1, nil, "")
+	tk, _ := ticket.New("TH", "Test ticket", "", ticket.TypeTask, 1, nil, "")
 	store.Add(tk)
 
 	// Add multiple comments
@@ -348,7 +348,7 @@ func TestStore_SyncCommentsOnReopen(t *testing.T) {
 		t.Fatalf("Open() error = %v", err)
 	}
 
-	tk, _ := ticket.New("TH", "Test", "", 1, nil, "")
+	tk, _ := ticket.New("TH", "Test", "", ticket.TypeTask, 1, nil, "")
 	store.Add(tk)
 
 	c, _ := ticket.NewComment(tk.ID, "Original comment")
@@ -387,8 +387,8 @@ func TestStore_AddAndGetDependencies(t *testing.T) {
 	defer store.Close()
 
 	// Create two tickets
-	tk1, _ := ticket.New("TH", "Blocker ticket", "", 1, nil, "")
-	tk2, _ := ticket.New("TH", "Blocked ticket", "", 2, nil, "")
+	tk1, _ := ticket.New("TH", "Blocker ticket", "", ticket.TypeTask, 1, nil, "")
+	tk2, _ := ticket.New("TH", "Blocked ticket", "", ticket.TypeTask, 2, nil, "")
 	store.Add(tk1)
 	store.Add(tk2)
 
@@ -438,9 +438,9 @@ func TestStore_CircularDependencyPrevention(t *testing.T) {
 	defer store.Close()
 
 	// Create three tickets for testing transitive cycle
-	tk1, _ := ticket.New("TH", "Ticket 1", "", 1, nil, "")
-	tk2, _ := ticket.New("TH", "Ticket 2", "", 2, nil, "")
-	tk3, _ := ticket.New("TH", "Ticket 3", "", 3, nil, "")
+	tk1, _ := ticket.New("TH", "Ticket 1", "", ticket.TypeTask, 1, nil, "")
+	tk2, _ := ticket.New("TH", "Ticket 2", "", ticket.TypeTask, 2, nil, "")
+	tk3, _ := ticket.New("TH", "Ticket 3", "", ticket.TypeTask, 3, nil, "")
 	store.Add(tk1)
 	store.Add(tk2)
 	store.Add(tk3)
@@ -469,8 +469,8 @@ func TestStore_DuplicateDependencyPrevention(t *testing.T) {
 	}
 	defer store.Close()
 
-	tk1, _ := ticket.New("TH", "Ticket 1", "", 1, nil, "")
-	tk2, _ := ticket.New("TH", "Ticket 2", "", 2, nil, "")
+	tk1, _ := ticket.New("TH", "Ticket 1", "", ticket.TypeTask, 1, nil, "")
+	tk2, _ := ticket.New("TH", "Ticket 2", "", ticket.TypeTask, 2, nil, "")
 	store.Add(tk1)
 	store.Add(tk2)
 
@@ -495,8 +495,8 @@ func TestStore_CreatedFromDependency(t *testing.T) {
 	}
 	defer store.Close()
 
-	parent, _ := ticket.New("TH", "Parent ticket", "", 1, nil, "")
-	child, _ := ticket.New("TH", "Child ticket", "", 2, nil, "")
+	parent, _ := ticket.New("TH", "Parent ticket", "", ticket.TypeTask, 1, nil, "")
+	child, _ := ticket.New("TH", "Child ticket", "", ticket.TypeTask, 2, nil, "")
 	store.Add(parent)
 	store.Add(child)
 
@@ -525,8 +525,8 @@ func TestStore_IsBlocked(t *testing.T) {
 	}
 	defer store.Close()
 
-	blocker, _ := ticket.New("TH", "Blocker", "", 1, nil, "")
-	blocked, _ := ticket.New("TH", "Blocked", "", 2, nil, "")
+	blocker, _ := ticket.New("TH", "Blocker", "", ticket.TypeTask, 1, nil, "")
+	blocked, _ := ticket.New("TH", "Blocked", "", ticket.TypeTask, 2, nil, "")
 	store.Add(blocker)
 	store.Add(blocked)
 
@@ -566,8 +566,8 @@ func TestStore_SyncDependenciesOnReopen(t *testing.T) {
 		t.Fatalf("Open() error = %v", err)
 	}
 
-	tk1, _ := ticket.New("TH", "Ticket 1", "", 1, nil, "")
-	tk2, _ := ticket.New("TH", "Ticket 2", "", 2, nil, "")
+	tk1, _ := ticket.New("TH", "Ticket 1", "", ticket.TypeTask, 1, nil, "")
+	tk2, _ := ticket.New("TH", "Ticket 2", "", ticket.TypeTask, 2, nil, "")
 	store.Add(tk1)
 	store.Add(tk2)
 
@@ -601,7 +601,7 @@ func TestStore_UpdatePreservesCommentsAndDependencies(t *testing.T) {
 	}
 
 	// 1. Add a ticket
-	tk, err := ticket.New("TH", "Test ticket", "Description", 1, nil, "")
+	tk, err := ticket.New("TH", "Test ticket", "Description", ticket.TypeTask, 1, nil, "")
 	if err != nil {
 		t.Fatalf("ticket.New() error = %v", err)
 	}
@@ -620,7 +620,7 @@ func TestStore_UpdatePreservesCommentsAndDependencies(t *testing.T) {
 	}
 
 	// 3. Add a dependency
-	tk2, err := ticket.New("TH", "Blocked ticket", "Description", 1, nil, "")
+	tk2, err := ticket.New("TH", "Blocked ticket", "Description", ticket.TypeTask, 1, nil, "")
 	if err != nil {
 		t.Fatalf("ticket.New() error = %v", err)
 	}
@@ -639,7 +639,7 @@ func TestStore_UpdatePreservesCommentsAndDependencies(t *testing.T) {
 
 	// 4. Update the ticket
 	newTitle := "Updated title"
-	if err := tk.Update(&newTitle, nil, nil, nil, nil, nil, nil); err != nil {
+	if err := tk.Update(&newTitle, nil, nil, nil, nil, nil, nil, nil); err != nil {
 		t.Fatalf("tk.Update() error = %v", err)
 	}
 	if err := store.Update(tk); err != nil {
@@ -703,7 +703,7 @@ func TestStore_AddWithLabels(t *testing.T) {
 	}
 	defer store.Close()
 
-	tk, err := ticket.New("TH", "Test ticket", "Description", 1, []string{"bug", "urgent"}, "")
+	tk, err := ticket.New("TH", "Test ticket", "Description", ticket.TypeTask, 1, []string{"bug", "urgent"}, "")
 	if err != nil {
 		t.Fatalf("ticket.New() error = %v", err)
 	}
@@ -735,7 +735,7 @@ func TestStore_UpdateLabels(t *testing.T) {
 	}
 	defer store.Close()
 
-	tk, err := ticket.New("TH", "Test ticket", "Description", 1, []string{"initial"}, "")
+	tk, err := ticket.New("TH", "Test ticket", "Description", ticket.TypeTask, 1, []string{"initial"}, "")
 	if err != nil {
 		t.Fatalf("ticket.New() error = %v", err)
 	}
@@ -745,7 +745,7 @@ func TestStore_UpdateLabels(t *testing.T) {
 	}
 
 	// Add a new label
-	if err := tk.Update(nil, nil, nil, nil, []string{"added"}, nil, nil); err != nil {
+	if err := tk.Update(nil, nil, nil, nil, nil, []string{"added"}, nil, nil); err != nil {
 		t.Fatalf("ticket.Update() error = %v", err)
 	}
 
@@ -774,9 +774,9 @@ func TestStore_ListByLabel(t *testing.T) {
 	defer store.Close()
 
 	// Create tickets with different labels
-	tk1, _ := ticket.New("TH", "Bug ticket", "", 1, []string{"bug"}, "")
-	tk2, _ := ticket.New("TH", "Feature ticket", "", 2, []string{"feature"}, "")
-	tk3, _ := ticket.New("TH", "Bug and feature", "", 3, []string{"bug", "feature"}, "")
+	tk1, _ := ticket.New("TH", "Bug ticket", "", ticket.TypeTask, 1, []string{"bug"}, "")
+	tk2, _ := ticket.New("TH", "Feature ticket", "", ticket.TypeTask, 2, []string{"feature"}, "")
+	tk3, _ := ticket.New("TH", "Bug and feature", "", ticket.TypeTask, 3, []string{"bug", "feature"}, "")
 	store.Add(tk1)
 	store.Add(tk2)
 	store.Add(tk3)
@@ -819,7 +819,7 @@ func TestStore_LabelsPreservedOnReopen(t *testing.T) {
 		t.Fatalf("Open() error = %v", err)
 	}
 
-	tk, _ := ticket.New("TH", "Test", "", 1, []string{"label1", "label2"}, "")
+	tk, _ := ticket.New("TH", "Test", "", ticket.TypeTask, 1, []string{"label1", "label2"}, "")
 	store.Add(tk)
 	store.Close()
 

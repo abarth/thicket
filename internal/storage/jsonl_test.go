@@ -23,10 +23,10 @@ func TestReadWriteJSONL(t *testing.T) {
 	}
 
 	// Write some tickets
-	now := time.Now().UTC()
+	now := time.Now().UTC().Truncate(time.Second) // JSON marshaling might lose sub-second precision depending on config, but ticket uses RFC3339
 	testTickets := []*ticket.Ticket{
-		{ID: "TH-111111", Title: "First", Description: "Desc 1", Status: ticket.StatusOpen, Priority: 1, Created: now, Updated: now},
-		{ID: "TH-222222", Title: "Second", Description: "Desc 2", Status: ticket.StatusClosed, Priority: 2, Created: now, Updated: now},
+		{ID: "TH-111111", Title: "First", Description: "Desc 1", Type: ticket.TypeBug, Status: ticket.StatusOpen, Priority: 1, Created: now, Updated: now},
+		{ID: "TH-222222", Title: "Second", Description: "Desc 2", Type: ticket.TypeFeature, Status: ticket.StatusClosed, Priority: 2, Created: now, Updated: now},
 	}
 
 	if err := WriteJSONL(path, testTickets); err != nil {
@@ -43,11 +43,11 @@ func TestReadWriteJSONL(t *testing.T) {
 		t.Fatalf("ReadJSONL() returned %d tickets, want 2", len(read))
 	}
 
-	if read[0].ID != "TH-111111" || read[0].Title != "First" {
-		t.Errorf("ReadJSONL()[0] = %+v, want ID=TH-111111, Title=First", read[0])
+	if read[0].ID != "TH-111111" || read[0].Title != "First" || read[0].Type != ticket.TypeBug {
+		t.Errorf("ReadJSONL()[0] = %+v, want ID=TH-111111, Title=First, Type=bug", read[0])
 	}
-	if read[1].ID != "TH-222222" || read[1].Title != "Second" {
-		t.Errorf("ReadJSONL()[1] = %+v, want ID=TH-222222, Title=Second", read[1])
+	if read[1].ID != "TH-222222" || read[1].Title != "Second" || read[1].Type != ticket.TypeFeature {
+		t.Errorf("ReadJSONL()[1] = %+v, want ID=TH-222222, Title=Second, Type=feature", read[1])
 	}
 }
 
@@ -88,9 +88,9 @@ func TestReadJSONL_EmptyLines(t *testing.T) {
 	dir := t.TempDir()
 	path := filepath.Join(dir, "tickets.jsonl")
 
-	content := `{"id":"TH-111111","title":"First","description":"","status":"open","priority":1,"created":"2024-01-01T00:00:00Z","updated":"2024-01-01T00:00:00Z"}
+	content := `{"id":"TH-111111","title":"First","description":"","type":"bug","status":"open","priority":1,"created":"2024-01-01T00:00:00Z","updated":"2024-01-01T00:00:00Z"}
 
-{"id":"TH-222222","title":"Second","description":"","status":"open","priority":2,"created":"2024-01-01T00:00:00Z","updated":"2024-01-01T00:00:00Z"}
+{"id":"TH-222222","title":"Second","description":"","type":"feature","status":"open","priority":2,"created":"2024-01-01T00:00:00Z","updated":"2024-01-01T00:00:00Z"}
 `
 	if err := os.WriteFile(path, []byte(content), 0644); err != nil {
 		t.Fatalf("WriteFile() error = %v", err)
@@ -103,6 +103,12 @@ func TestReadJSONL_EmptyLines(t *testing.T) {
 
 	if len(tickets) != 2 {
 		t.Fatalf("ReadJSONL() returned %d tickets, want 2", len(tickets))
+	}
+	if tickets[0].Type != ticket.TypeBug {
+		t.Errorf("tickets[0].Type = %q, want %q", tickets[0].Type, ticket.TypeBug)
+	}
+	if tickets[1].Type != ticket.TypeFeature {
+		t.Errorf("tickets[1].Type = %q, want %q", tickets[1].Type, ticket.TypeFeature)
 	}
 }
 

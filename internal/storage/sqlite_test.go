@@ -80,6 +80,7 @@ func TestDB_InsertAndGetTicket(t *testing.T) {
 		ID:          "TH-111111",
 		Title:       "Test ticket",
 		Description: "A description",
+		Type:        ticket.TypeBug,
 		Status:      ticket.StatusOpen,
 		Priority:    1,
 		Created:     now,
@@ -106,6 +107,9 @@ func TestDB_InsertAndGetTicket(t *testing.T) {
 	}
 	if got.Description != tk.Description {
 		t.Errorf("GetTicket().Description = %q, want %q", got.Description, tk.Description)
+	}
+	if got.Type != tk.Type {
+		t.Errorf("GetTicket().Type = %q, want %q", got.Type, tk.Type)
 	}
 	if got.Status != tk.Status {
 		t.Errorf("GetTicket().Status = %q, want %q", got.Status, tk.Status)
@@ -148,6 +152,7 @@ func TestDB_UpdateTicket(t *testing.T) {
 	tk := &ticket.Ticket{
 		ID:       "TH-111111",
 		Title:    "Original",
+		Type:     ticket.TypeTask,
 		Status:   ticket.StatusOpen,
 		Priority: 1,
 		Created:  now,
@@ -159,6 +164,7 @@ func TestDB_UpdateTicket(t *testing.T) {
 	}
 
 	tk.Title = "Updated"
+	tk.Type = ticket.TypeBug
 	tk.Status = ticket.StatusClosed
 	tk.Updated = time.Now().UTC()
 
@@ -173,6 +179,9 @@ func TestDB_UpdateTicket(t *testing.T) {
 
 	if got.Title != "Updated" {
 		t.Errorf("GetTicket().Title = %q, want Updated", got.Title)
+	}
+	if got.Type != ticket.TypeBug {
+		t.Errorf("GetTicket().Type = %q, want %q", got.Type, ticket.TypeBug)
 	}
 	if got.Status != ticket.StatusClosed {
 		t.Errorf("GetTicket().Status = %q, want closed", got.Status)
@@ -273,11 +282,11 @@ func TestDB_ListReadyTickets(t *testing.T) {
 
 	now := time.Now().UTC()
 	tickets := []*ticket.Ticket{
-		{ID: "TH-111111", Title: "Blocked by open", Status: ticket.StatusOpen, Priority: 1, Created: now, Updated: now},
-		{ID: "TH-222222", Title: "Open Blocker", Status: ticket.StatusOpen, Priority: 1, Created: now, Updated: now},
-		{ID: "TH-333333", Title: "Blocked by closed", Status: ticket.StatusOpen, Priority: 1, Created: now, Updated: now},
-		{ID: "TH-444444", Title: "Closed Blocker", Status: ticket.StatusClosed, Priority: 1, Created: now, Updated: now},
-		{ID: "TH-555555", Title: "Ready", Status: ticket.StatusOpen, Priority: 1, Created: now, Updated: now},
+		{ID: "TH-111111", Title: "Blocked by open", Type: ticket.TypeBug, Status: ticket.StatusOpen, Priority: 1, Created: now, Updated: now},
+		{ID: "TH-222222", Title: "Open Blocker", Type: ticket.TypeFeature, Status: ticket.StatusOpen, Priority: 1, Created: now, Updated: now},
+		{ID: "TH-333333", Title: "Blocked by closed", Type: ticket.TypeTask, Status: ticket.StatusOpen, Priority: 1, Created: now, Updated: now},
+		{ID: "TH-444444", Title: "Closed Blocker", Type: ticket.TypeTask, Status: ticket.StatusClosed, Priority: 1, Created: now, Updated: now},
+		{ID: "TH-555555", Title: "Ready", Type: ticket.TypeBug, Status: ticket.StatusOpen, Priority: 1, Created: now, Updated: now},
 	}
 
 	for _, tk := range tickets {
@@ -338,15 +347,15 @@ func TestDB_RebuildFromTickets(t *testing.T) {
 	now := time.Now().UTC()
 
 	// Insert initial ticket
-	initial := &ticket.Ticket{ID: "TH-000000", Title: "Initial", Status: ticket.StatusOpen, Priority: 0, Created: now, Updated: now}
+	initial := &ticket.Ticket{ID: "TH-000000", Title: "Initial", Type: ticket.TypeTask, Status: ticket.StatusOpen, Priority: 0, Created: now, Updated: now}
 	if err := db.InsertTicket(initial); err != nil {
 		t.Fatalf("InsertTicket() error = %v", err)
 	}
 
 	// Rebuild with different tickets
 	newTickets := []*ticket.Ticket{
-		{ID: "TH-111111", Title: "First", Status: ticket.StatusOpen, Priority: 1, Created: now, Updated: now},
-		{ID: "TH-222222", Title: "Second", Status: ticket.StatusOpen, Priority: 2, Created: now, Updated: now},
+		{ID: "TH-111111", Title: "First", Type: ticket.TypeBug, Status: ticket.StatusOpen, Priority: 1, Created: now, Updated: now},
+		{ID: "TH-222222", Title: "Second", Type: ticket.TypeFeature, Status: ticket.StatusOpen, Priority: 2, Created: now, Updated: now},
 	}
 
 	if err := db.RebuildFromTickets(newTickets); err != nil {
@@ -369,5 +378,11 @@ func TestDB_RebuildFromTickets(t *testing.T) {
 	}
 	if len(all) != 2 {
 		t.Fatalf("GetAllTickets() returned %d tickets, want 2", len(all))
+	}
+	if all[0].Type != ticket.TypeBug {
+		t.Errorf("all[0].Type = %q, want %q", all[0].Type, ticket.TypeBug)
+	}
+	if all[1].Type != ticket.TypeFeature {
+		t.Errorf("all[1].Type = %q, want %q", all[1].Type, ticket.TypeFeature)
 	}
 }

@@ -18,11 +18,23 @@ const (
 	StatusClosed Status = "closed"
 )
 
+// Type represents the category of a ticket.
+type Type string
+
+const (
+	TypeBug     Type = "bug"
+	TypeFeature Type = "feature"
+	TypeTask    Type = "task"
+	TypeEpic    Type = "epic"
+	TypeCleanup Type = "cleanup"
+)
+
 // Ticket represents a single issue in the tracker.
 type Ticket struct {
 	ID          string    `json:"id"`
 	Title       string    `json:"title"`
 	Description string    `json:"description"`
+	Type        Type      `json:"type,omitempty"`
 	Status      Status    `json:"status"`
 	Priority    int       `json:"priority"`
 	Labels      []string  `json:"labels,omitempty"`
@@ -120,7 +132,8 @@ func ValidateLabels(labels []string) error {
 }
 
 // New creates a new ticket with the given parameters.
-func New(projectCode, title, description string, priority int, labels []string, assignee string) (*Ticket, error) {
+// New creates a new ticket with a generated ID.
+func New(projectCode, title, description string, issueType Type, priority int, labels []string, assignee string) (*Ticket, error) {
 	id, err := GenerateID(projectCode)
 	if err != nil {
 		return nil, err
@@ -140,6 +153,7 @@ func New(projectCode, title, description string, priority int, labels []string, 
 		ID:          id,
 		Title:       title,
 		Description: strings.TrimSpace(description),
+		Type:        issueType,
 		Status:      StatusOpen,
 		Priority:    priority,
 		Labels:      labels,
@@ -170,7 +184,7 @@ func (t *Ticket) Close() {
 }
 
 // Update modifies the ticket fields and updates the timestamp.
-func (t *Ticket) Update(title, description *string, priority *int, status *Status, addLabels, removeLabels []string, assignee *string) error {
+func (t *Ticket) Update(title, description *string, issueType *Type, priority *int, status *Status, addLabels, removeLabels []string, assignee *string) error {
 	if title != nil {
 		trimmed := strings.TrimSpace(*title)
 		if trimmed == "" {
@@ -180,6 +194,9 @@ func (t *Ticket) Update(title, description *string, priority *int, status *Statu
 	}
 	if description != nil {
 		t.Description = strings.TrimSpace(*description)
+	}
+	if issueType != nil {
+		t.Type = *issueType
 	}
 	if priority != nil {
 		t.Priority = *priority

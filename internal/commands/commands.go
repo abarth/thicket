@@ -96,6 +96,9 @@ func printTicketDetail(w io.Writer, details *TicketDetails) {
 	t := details.Ticket
 	fmt.Fprintf(w, "ID:          %s\n", t.ID)
 	fmt.Fprintf(w, "Title:       %s\n", t.Title)
+	if t.Type != "" {
+		fmt.Fprintf(w, "Type:        %s\n", t.Type)
+	}
 	fmt.Fprintf(w, "Status:      %s\n", t.Status)
 	fmt.Fprintf(w, "Priority:    %d\n", t.Priority)
 	if t.Assignee != "" {

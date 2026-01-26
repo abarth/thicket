@@ -16,6 +16,7 @@ func Update(args []string) error {
 	fs, jsonOutput, dataDir := newFlagSet("update")
 	title := fs.String("title", "", "New title")
 	description := fs.String("description", "", "New description")
+	issueType := fs.String("type", "", "New type")
 	priority := fs.Int("priority", -1, "New priority")
 	status := fs.String("status", "", "New status (open, closed)")
 	assignee := fs.String("assignee", "", "Assign ticket to person (use empty string to clear)")
@@ -67,6 +68,7 @@ func Update(args []string) error {
 
 	// Build update parameters
 	var titlePtr, descPtr *string
+	var typePtr *ticket.Type
 	var priorityPtr *int
 	var statusPtr *ticket.Status
 	var assigneePtr *string
@@ -76,6 +78,10 @@ func Update(args []string) error {
 	}
 	if *description != "" {
 		descPtr = description
+	}
+	if *issueType != "" {
+		t := ticket.Type(*issueType)
+		typePtr = &t
 	}
 	if *priority >= 0 {
 		priorityPtr = priority
@@ -99,14 +105,14 @@ func Update(args []string) error {
 		assigneePtr = assignee
 	}
 
-	if titlePtr == nil && descPtr == nil && priorityPtr == nil && statusPtr == nil && assigneePtr == nil && len(addLabels) == 0 && len(removeLabels) == 0 {
+	if titlePtr == nil && descPtr == nil && typePtr == nil && priorityPtr == nil && statusPtr == nil && assigneePtr == nil && len(addLabels) == 0 && len(removeLabels) == 0 {
 		return thickerr.WithHint(
 			"No fields to update",
-			"Use --title, --description, --priority, --status, --assignee, --add-label, or --remove-label to specify changes",
+			"Use --title, --description, --type, --priority, --status, --assignee, --add-label, or --remove-label to specify changes",
 		)
 	}
 
-	if err := t.Update(titlePtr, descPtr, priorityPtr, statusPtr, addLabels, removeLabels, assigneePtr); err != nil {
+	if err := t.Update(titlePtr, descPtr, typePtr, priorityPtr, statusPtr, addLabels, removeLabels, assigneePtr); err != nil {
 		return err
 	}
 
