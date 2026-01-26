@@ -2,11 +2,13 @@
 package commands
 
 import (
+	"bufio"
 	"encoding/json"
 	"flag"
 	"fmt"
 	"io"
 	"os"
+	"strconv"
 	"strings"
 	"text/tabwriter"
 	"time"
@@ -112,12 +114,14 @@ func Init(args []string) error {
 // Add creates a new ticket.
 func Add(args []string) error {
 	fs := flag.NewFlagSet("add", flag.ExitOnError)
-	title := fs.String("title", "", "Ticket title (required)")
+	title := fs.String("title", "", "Ticket title")
 	description := fs.String("description", "", "Ticket description")
 	priority := fs.Int("priority", 0, "Ticket priority (lower = higher priority)")
+	interactive := fs.Bool("interactive", false, "Interactive mode")
+	fs.BoolVar(interactive, "i", false, "Interactive mode (shorthand)")
 	jsonOutput := fs.Bool("json", false, "Output in JSON format")
 	fs.Usage = func() {
-		fmt.Fprintln(os.Stderr, "Usage: thicket add --title <TITLE> [--description <DESC>] [--priority <N>] [--json]")
+		fmt.Fprintln(os.Stderr, "Usage: thicket add [--interactive] [--title <TITLE>] [--description <DESC>] [--priority <N>] [--json]")
 		fmt.Fprintln(os.Stderr, "\nCreate a new ticket.")
 		fmt.Fprintln(os.Stderr, "\nFlags:")
 		fs.PrintDefaults()
@@ -125,6 +129,48 @@ func Add(args []string) error {
 
 	if err := fs.Parse(args); err != nil {
 		return err
+	}
+
+	if *interactive {
+		scanner := bufio.NewScanner(os.Stdin)
+		if *title == "" {
+			fmt.Print("Title: ")
+			if scanner.Scan() {
+				*title = strings.TrimSpace(scanner.Text())
+			}
+		}
+		if *description == "" {
+			fmt.Print("Description: ")
+			if scanner.Scan() {
+				*description = strings.TrimSpace(scanner.Text())
+			}
+		}
+
+		// Check if priority was explicitly set
+		prioritySet := false
+		fs.Visit(func(f *flag.Flag) {
+			if f.Name == "priority" {
+				prioritySet = true
+			}
+		})
+
+		if !prioritySet {
+			fmt.Print("Priority [2]: ")
+			if scanner.Scan() {
+				val := strings.TrimSpace(scanner.Text())
+				if val == "" {
+					*priority = 2
+				} else {
+					if p, err := strconv.Atoi(val); err == nil {
+						*priority = p
+					} else {
+						*priority = 2
+					}
+				}
+			} else {
+				*priority = 2
+			}
+		}
 	}
 
 	if *title == "" {
