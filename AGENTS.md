@@ -111,6 +111,39 @@ go build -o thicket ./cmd/thicket
 go test ./internal/ticket -run TestValidateID -v
 ```
 
+## Manual Testing
+
+**IMPORTANT**: Do NOT use the production `.thicket/` directory for manual testing. The `.thicket/tickets.jsonl` file is tracked by git and contains real project tickets.
+
+### For Automated Tests
+Use `go test ./...` — the test suite creates isolated temporary directories and does not touch the production data.
+
+### For Manual/Ad-hoc Testing
+If you need to manually test Thicket commands, create a separate test instance:
+
+```bash
+# Create a test directory
+mkdir -p /tmp/thicket-test
+cd /tmp/thicket-test
+
+# Initialize a test instance
+/path/to/thicket init --project TS
+
+# Now you can safely test commands
+/path/to/thicket add --title "Test ticket" --priority 1
+/path/to/thicket list
+/path/to/thicket link --blocked-by TS-abc123 TS-def456
+
+# Clean up when done
+rm -rf /tmp/thicket-test
+```
+
+### Why This Matters
+- The production `.thicket/tickets.jsonl` is version-controlled and shared
+- Test data would pollute the real ticket list
+- Corrupted test data could break the production instance
+- Other agents and developers rely on the ticket data being accurate
+
 ## Conventions
 
 1. **Ticket IDs**: Format is `XX-xxxxxx` (e.g., `TH-a1b2c3`). The project code is `TH`.
