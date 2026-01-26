@@ -92,6 +92,7 @@ Type:        bug
 Status:      open
 Priority:    1
 Assignee:    Alice
+Labels:      security, customer
 Created:     2026-01-25T10:00:00Z
 Updated:     2026-01-25T10:30:00Z
 ```

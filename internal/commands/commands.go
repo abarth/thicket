@@ -80,18 +80,25 @@ func wrapConfigError(err error) error {
 
 func printTicketTable(w io.Writer, tickets []*ticket.Ticket) {
 	tw := tabwriter.NewWriter(w, 0, 0, 2, ' ', 0)
-	fmt.Fprintln(tw, "ID\tPRI\tTYPE\tSTATUS\tTITLE")
-	fmt.Fprintln(tw, "--\t---\t----\t------\t-----")
+	fmt.Fprintln(tw, "ID\tPRI\tTYPE\tSTATUS\tASSIGNEE\tTITLE")
+	fmt.Fprintln(tw, "--\t---\t----\t------\t--------\t-----")
 	for _, t := range tickets {
 		title := t.Title
 		if len(title) > 50 {
 			title = title[:47] + "..."
 		}
+		assignee := t.Assignee
+		if assignee == "" {
+			assignee = "-"
+		}
+		if len(assignee) > 12 {
+			assignee = assignee[:9] + "..."
+		}
 		issueType := string(t.Type)
 		if issueType == "" {
 			issueType = "-"
 		}
-		fmt.Fprintf(tw, "%s\t%d\t%s\t%s\t%s\n", t.ID, t.Priority, issueType, t.Status, title)
+		fmt.Fprintf(tw, "%s\t%d\t%s\t%s\t%s\t%s\n", t.ID, t.Priority, issueType, t.Status, assignee, title)
 	}
 	tw.Flush()
 }
@@ -100,17 +107,27 @@ func printTicketDetail(w io.Writer, details *TicketDetails) {
 	t := details.Ticket
 	fmt.Fprintf(w, "ID:          %s\n", t.ID)
 	fmt.Fprintf(w, "Title:       %s\n", t.Title)
-	if t.Type != "" {
-		fmt.Fprintf(w, "Type:        %s\n", t.Type)
+
+	issueType := string(t.Type)
+	if issueType == "" {
+		issueType = "-"
 	}
+	fmt.Fprintf(w, "Type:        %s\n", issueType)
 	fmt.Fprintf(w, "Status:      %s\n", t.Status)
 	fmt.Fprintf(w, "Priority:    %d\n", t.Priority)
-	if t.Assignee != "" {
-		fmt.Fprintf(w, "Assignee:    %s\n", t.Assignee)
+
+	assignee := t.Assignee
+	if assignee == "" {
+		assignee = "(unassigned)"
 	}
-	if len(t.Labels) > 0 {
-		fmt.Fprintf(w, "Labels:      %s\n", strings.Join(t.Labels, ", "))
+	fmt.Fprintf(w, "Assignee:    %s\n", assignee)
+
+	labels := strings.Join(t.Labels, ", ")
+	if labels == "" {
+		labels = "(none)"
 	}
+	fmt.Fprintf(w, "Labels:      %s\n", labels)
+
 	fmt.Fprintf(w, "Created:     %s\n", t.Created.Format(time.RFC3339))
 	fmt.Fprintf(w, "Updated:     %s\n", t.Updated.Format(time.RFC3339))
 

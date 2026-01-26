@@ -34,11 +34,11 @@ type Ticket struct {
 	ID          string    `json:"id"`
 	Title       string    `json:"title"`
 	Description string    `json:"description"`
-	Type        Type      `json:"type,omitempty"`
+	Type        Type      `json:"type"`
 	Status      Status    `json:"status"`
 	Priority    int       `json:"priority"`
-	Labels      []string  `json:"labels,omitempty"`
-	Assignee    string    `json:"assignee,omitempty"`
+	Labels      []string  `json:"labels"`
+	Assignee    string    `json:"assignee"`
 	Created     time.Time `json:"created"`
 	Updated     time.Time `json:"updated"`
 }
