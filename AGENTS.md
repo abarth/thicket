@@ -54,8 +54,16 @@ go build -o thicket ./cmd/thicket
 
 ### When Completing Work
 
-1. **Close the ticket**: `./thicket close --json <ID>`
-2. **Verify no regressions**: Run `go test ./...`
+1. **Check for follow-on work**: If you discovered additional bugs, tasks, or improvements that you are not addressing in your current task, create new tickets for them and link them to the current ticket using `--created-from`. This ensures that work discovered during the current task is not lost.
+   ```bash
+   # Create follow-on ticket
+   ./thicket add --json --title "Follow-on task" --priority 2
+
+   # Link it to the current ticket
+   ./thicket link --json --created-from <CURRENT-ID> <NEW-ID>
+   ```
+2. **Close the ticket**: `./thicket close --json <ID>`
+3. **Verify no regressions**: Run `go test ./...`
 
 ## Priority Guidelines
 

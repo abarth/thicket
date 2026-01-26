@@ -76,11 +76,12 @@ thicket init --project <CODE>
 Create a new ticket.
 
 ```bash
-thicket add --title <TITLE> [--description <DESC>] [--priority <N>]
+thicket add [--interactive] [--title <TITLE>] [--description <DESC>] [--priority <N>]
 ```
 
 **Flags:**
-- `--title` (required): Short summary of the ticket
+- `--interactive`, `-i`: Enter interactive mode to provide ticket details.
+- `--title`: Short summary of the ticket (required if not in interactive mode)
 - `--description`: Detailed explanation
 - `--priority`: Integer priority (default: 0, lower = higher priority)
 
