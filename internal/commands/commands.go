@@ -2,7 +2,6 @@
 package commands
 
 import (
-	"errors"
 	"flag"
 	"fmt"
 	"io"
@@ -12,13 +11,14 @@ import (
 	"time"
 
 	"github.com/abarth/thicket/internal/config"
+	thickerr "github.com/abarth/thicket/internal/errors"
 	"github.com/abarth/thicket/internal/storage"
 	"github.com/abarth/thicket/internal/ticket"
 )
 
-var (
-	ErrTicketNotFound = errors.New("ticket not found")
-)
+// ErrTicketNotFound is returned when a ticket cannot be found.
+// Deprecated: Use thickerr.TicketNotFound() for better error messages.
+var ErrTicketNotFound = thickerr.New("ticket not found")
 
 // normalizeTicketID normalizes a ticket ID to the canonical format:
 // uppercase project code, lowercase hex portion (e.g., "th-ABCDEF" -> "TH-abcdef").
@@ -27,6 +27,17 @@ func normalizeTicketID(id string) string {
 		return id
 	}
 	return strings.ToUpper(id[:2]) + "-" + strings.ToLower(id[3:])
+}
+
+// wrapConfigError converts config errors to user-friendly errors.
+func wrapConfigError(err error) error {
+	if err == config.ErrNotInitialized {
+		return thickerr.NotInitialized()
+	}
+	if err == config.ErrAlreadyInit {
+		return thickerr.New("Thicket is already initialized in this directory")
+	}
+	return err
 }
 
 // Init initializes a new Thicket project.
@@ -45,10 +56,14 @@ func Init(args []string) error {
 	}
 
 	if *projectCode == "" {
-		return errors.New("--project flag is required")
+		return thickerr.MissingRequired("project")
 	}
 
 	*projectCode = strings.ToUpper(*projectCode)
+
+	if err := ticket.ValidateProjectCode(*projectCode); err != nil {
+		return thickerr.InvalidProjectCode(*projectCode)
+	}
 
 	wd, err := os.Getwd()
 	if err != nil {
@@ -56,7 +71,7 @@ func Init(args []string) error {
 	}
 
 	if err := config.Init(wd, *projectCode); err != nil {
-		return err
+		return wrapConfigError(err)
 	}
 
 	fmt.Printf("Initialized Thicket project with code %s\n", *projectCode)
@@ -81,17 +96,17 @@ func Add(args []string) error {
 	}
 
 	if *title == "" {
-		return errors.New("--title flag is required")
+		return thickerr.MissingRequired("title")
 	}
 
 	root, err := config.FindRoot()
 	if err != nil {
-		return err
+		return wrapConfigError(err)
 	}
 
 	cfg, err := config.Load(root)
 	if err != nil {
-		return err
+		return wrapConfigError(err)
 	}
 
 	paths := config.GetPaths(root)
@@ -131,7 +146,7 @@ func List(args []string) error {
 
 	root, err := config.FindRoot()
 	if err != nil {
-		return err
+		return wrapConfigError(err)
 	}
 
 	paths := config.GetPaths(root)
@@ -145,7 +160,7 @@ func List(args []string) error {
 	if *statusFilter != "" {
 		s := ticket.Status(*statusFilter)
 		if err := ticket.ValidateStatus(s); err != nil {
-			return fmt.Errorf("invalid status: %s (use 'open' or 'closed')", *statusFilter)
+			return thickerr.InvalidStatus(*statusFilter)
 		}
 		status = &s
 	}
@@ -191,17 +206,17 @@ func Show(args []string) error {
 	}
 
 	if fs.NArg() < 1 {
-		return errors.New("ticket ID is required")
+		return thickerr.WithHint("Ticket ID is required", "Usage: thicket show <TICKET-ID>")
 	}
 
 	ticketID := normalizeTicketID(fs.Arg(0))
 	if err := ticket.ValidateID(ticketID); err != nil {
-		return fmt.Errorf("invalid ticket ID: %s", ticketID)
+		return thickerr.InvalidTicketID(ticketID)
 	}
 
 	root, err := config.FindRoot()
 	if err != nil {
-		return err
+		return wrapConfigError(err)
 	}
 
 	paths := config.GetPaths(root)
@@ -216,7 +231,7 @@ func Show(args []string) error {
 		return err
 	}
 	if t == nil {
-		return ErrTicketNotFound
+		return thickerr.TicketNotFound(ticketID)
 	}
 
 	printTicketDetail(os.Stdout, t)
@@ -254,17 +269,17 @@ func Update(args []string) error {
 	}
 
 	if fs.NArg() < 1 {
-		return errors.New("ticket ID is required")
+		return thickerr.WithHint("Ticket ID is required", "Usage: thicket update [flags] <TICKET-ID>")
 	}
 
 	ticketID := normalizeTicketID(fs.Arg(0))
 	if err := ticket.ValidateID(ticketID); err != nil {
-		return fmt.Errorf("invalid ticket ID: %s", ticketID)
+		return thickerr.InvalidTicketID(ticketID)
 	}
 
 	root, err := config.FindRoot()
 	if err != nil {
-		return err
+		return wrapConfigError(err)
 	}
 
 	paths := config.GetPaths(root)
@@ -279,7 +294,7 @@ func Update(args []string) error {
 		return err
 	}
 	if t == nil {
-		return ErrTicketNotFound
+		return thickerr.TicketNotFound(ticketID)
 	}
 
 	// Build update parameters
@@ -299,13 +314,16 @@ func Update(args []string) error {
 	if *status != "" {
 		s := ticket.Status(*status)
 		if err := ticket.ValidateStatus(s); err != nil {
-			return fmt.Errorf("invalid status: %s (use 'open' or 'closed')", *status)
+			return thickerr.InvalidStatus(*status)
 		}
 		statusPtr = &s
 	}
 
 	if titlePtr == nil && descPtr == nil && priorityPtr == nil && statusPtr == nil {
-		return errors.New("no fields to update (use --title, --description, --priority, or --status)")
+		return thickerr.WithHint(
+			"No fields to update",
+			"Use --title, --description, --priority, or --status to specify changes",
+		)
 	}
 
 	if err := t.Update(titlePtr, descPtr, priorityPtr, statusPtr); err != nil {
@@ -333,17 +351,17 @@ func Close(args []string) error {
 	}
 
 	if fs.NArg() < 1 {
-		return errors.New("ticket ID is required")
+		return thickerr.WithHint("Ticket ID is required", "Usage: thicket close <TICKET-ID>")
 	}
 
 	ticketID := normalizeTicketID(fs.Arg(0))
 	if err := ticket.ValidateID(ticketID); err != nil {
-		return fmt.Errorf("invalid ticket ID: %s", ticketID)
+		return thickerr.InvalidTicketID(ticketID)
 	}
 
 	root, err := config.FindRoot()
 	if err != nil {
-		return err
+		return wrapConfigError(err)
 	}
 
 	paths := config.GetPaths(root)
@@ -358,7 +376,7 @@ func Close(args []string) error {
 		return err
 	}
 	if t == nil {
-		return ErrTicketNotFound
+		return thickerr.TicketNotFound(ticketID)
 	}
 
 	if t.Status == ticket.StatusClosed {

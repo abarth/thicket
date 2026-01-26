@@ -279,8 +279,8 @@ func TestShow_NotFound(t *testing.T) {
 	}
 
 	err := Show([]string{"TH-999999"})
-	if err != ErrTicketNotFound {
-		t.Errorf("Show() error = %v, want ErrTicketNotFound", err)
+	if err == nil || !strings.Contains(err.Error(), "not found") {
+		t.Errorf("Show() error = %v, want error containing 'not found'", err)
 	}
 }
 
@@ -407,8 +407,8 @@ func TestUpdate_NotFound(t *testing.T) {
 	}
 
 	err := Update([]string{"--title", "Test", "TH-999999"})
-	if err != ErrTicketNotFound {
-		t.Errorf("Update() error = %v, want ErrTicketNotFound", err)
+	if err == nil || !strings.Contains(err.Error(), "not found") {
+		t.Errorf("Update() error = %v, want error containing 'not found'", err)
 	}
 }
 
@@ -476,8 +476,8 @@ func TestClose_NotFound(t *testing.T) {
 	}
 
 	err := Close([]string{"TH-999999"})
-	if err != ErrTicketNotFound {
-		t.Errorf("Close() error = %v, want ErrTicketNotFound", err)
+	if err == nil || !strings.Contains(err.Error(), "not found") {
+		t.Errorf("Close() error = %v, want error containing 'not found'", err)
 	}
 }
 
