@@ -17,6 +17,8 @@ go build -o thicket ./cmd/thicket
 
 ## Required Workflow
 
+**CRITICAL**: Do NOT read or write `.thicket/tickets.jsonl` directly. This file is the source of truth for the project's ticket database, and manual edits can corrupt the data or cause sync issues. Always use the `thicket` command (e.g., `./thicket ready`, `./thicket show`) to interact with the production database.
+
 ### At the Start of Each Session
 
 1. **Check open tickets**: Run `./thicket ready` to see actionable work items. Use `./thicket list --status open` for a full list.
@@ -101,6 +103,7 @@ thicket/
 - **internal/ticket/ticket.go**: Core ticket data model - understand this first
 - **internal/ticket/comment.go**: Comment data model
 - **internal/storage/**: How data flows between JSONL (source of truth) and SQLite (cache)
+- **.thicket/tickets.jsonl**: The production ticket database. **NEVER read or edit this file directly.** Always use the `thicket` CLI tool.
 
 ## Development Commands
 

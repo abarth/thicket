@@ -55,6 +55,7 @@ Priority guidelines:
 BEST PRACTICES
 --------------
 
+- **NEVER read or edit .thicket/tickets.jsonl directly.** Always use the CLI.
 - Use the --json flag for all commands to get machine-readable output
 - Create tickets for any work you defer ("I'll fix this later")
 - Use descriptive titles that explain WHAT needs to be done
