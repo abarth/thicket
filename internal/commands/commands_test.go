@@ -525,3 +525,201 @@ func TestQuickstart(t *testing.T) {
 		t.Fatalf("Quickstart() error = %v", err)
 	}
 }
+
+func TestComment(t *testing.T) {
+	dir, cleanup := setupTestProject(t)
+	defer cleanup()
+
+	if err := Init([]string{"--project", "TH"}); err != nil {
+		t.Fatalf("Init() error = %v", err)
+	}
+
+	Add([]string{"--title", "Test ticket"})
+
+	// Get the ticket ID
+	paths := config.GetPaths(dir)
+	store, _ := storage.Open(paths)
+	tickets, _ := store.List(nil)
+	ticketID := tickets[0].ID
+	store.Close()
+
+	err := Comment([]string{ticketID, "This is a comment"})
+	if err != nil {
+		t.Fatalf("Comment() error = %v", err)
+	}
+
+	// Verify comment was created
+	store, _ = storage.Open(paths)
+	comments, err := store.GetComments(ticketID)
+	store.Close()
+
+	if err != nil {
+		t.Fatalf("GetComments() error = %v", err)
+	}
+	if len(comments) != 1 {
+		t.Fatalf("Expected 1 comment, got %d", len(comments))
+	}
+	if comments[0].Content != "This is a comment" {
+		t.Errorf("Content = %q, want 'This is a comment'", comments[0].Content)
+	}
+}
+
+func TestComment_MissingTicketID(t *testing.T) {
+	_, cleanup := setupTestProject(t)
+	defer cleanup()
+
+	if err := Init([]string{"--project", "TH"}); err != nil {
+		t.Fatalf("Init() error = %v", err)
+	}
+
+	err := Comment([]string{})
+	if err == nil {
+		t.Error("Comment() expected error for missing ticket ID")
+	}
+}
+
+func TestComment_MissingContent(t *testing.T) {
+	dir, cleanup := setupTestProject(t)
+	defer cleanup()
+
+	if err := Init([]string{"--project", "TH"}); err != nil {
+		t.Fatalf("Init() error = %v", err)
+	}
+
+	Add([]string{"--title", "Test ticket"})
+
+	paths := config.GetPaths(dir)
+	store, _ := storage.Open(paths)
+	tickets, _ := store.List(nil)
+	ticketID := tickets[0].ID
+	store.Close()
+
+	err := Comment([]string{ticketID})
+	if err == nil {
+		t.Error("Comment() expected error for missing content")
+	}
+}
+
+func TestComment_EmptyContent(t *testing.T) {
+	dir, cleanup := setupTestProject(t)
+	defer cleanup()
+
+	if err := Init([]string{"--project", "TH"}); err != nil {
+		t.Fatalf("Init() error = %v", err)
+	}
+
+	Add([]string{"--title", "Test ticket"})
+
+	paths := config.GetPaths(dir)
+	store, _ := storage.Open(paths)
+	tickets, _ := store.List(nil)
+	ticketID := tickets[0].ID
+	store.Close()
+
+	err := Comment([]string{ticketID, "   "})
+	if err == nil {
+		t.Error("Comment() expected error for empty content")
+	}
+}
+
+func TestComment_InvalidTicketID(t *testing.T) {
+	_, cleanup := setupTestProject(t)
+	defer cleanup()
+
+	if err := Init([]string{"--project", "TH"}); err != nil {
+		t.Fatalf("Init() error = %v", err)
+	}
+
+	err := Comment([]string{"invalid", "Comment"})
+	if err == nil {
+		t.Error("Comment() expected error for invalid ticket ID")
+	}
+}
+
+func TestComment_TicketNotFound(t *testing.T) {
+	_, cleanup := setupTestProject(t)
+	defer cleanup()
+
+	if err := Init([]string{"--project", "TH"}); err != nil {
+		t.Fatalf("Init() error = %v", err)
+	}
+
+	err := Comment([]string{"TH-999999", "Comment"})
+	if err == nil || !strings.Contains(err.Error(), "not found") {
+		t.Errorf("Comment() error = %v, want error containing 'not found'", err)
+	}
+}
+
+func TestShow_WithComments(t *testing.T) {
+	dir, cleanup := setupTestProject(t)
+	defer cleanup()
+
+	if err := Init([]string{"--project", "TH"}); err != nil {
+		t.Fatalf("Init() error = %v", err)
+	}
+
+	Add([]string{"--title", "Test ticket", "--description", "Description"})
+
+	// Get the ticket ID
+	paths := config.GetPaths(dir)
+	store, _ := storage.Open(paths)
+	tickets, _ := store.List(nil)
+	ticketID := tickets[0].ID
+	store.Close()
+
+	// Add a comment
+	Comment([]string{ticketID, "A test comment"})
+
+	// Show should not error (output includes comments)
+	err := Show([]string{ticketID})
+	if err != nil {
+		t.Fatalf("Show() error = %v", err)
+	}
+}
+
+func TestPrintTicketDetail_WithComments(t *testing.T) {
+	tk := &ticket.Ticket{
+		ID:          "TH-111111",
+		Title:       "Test ticket",
+		Description: "Description",
+		Status:      ticket.StatusOpen,
+		Priority:    1,
+	}
+	comments := []*ticket.Comment{
+		{ID: "TH-c111111", TicketID: "TH-111111", Content: "First comment"},
+		{ID: "TH-c222222", TicketID: "TH-111111", Content: "Second comment"},
+	}
+
+	var buf bytes.Buffer
+	printTicketDetail(&buf, tk, comments)
+
+	output := buf.String()
+	if !strings.Contains(output, "TH-111111") {
+		t.Error("Output should contain ticket ID")
+	}
+	if !strings.Contains(output, "Comments:") {
+		t.Error("Output should contain Comments section")
+	}
+	if !strings.Contains(output, "First comment") {
+		t.Error("Output should contain first comment")
+	}
+	if !strings.Contains(output, "Second comment") {
+		t.Error("Output should contain second comment")
+	}
+}
+
+func TestPrintTicketDetail_NoComments(t *testing.T) {
+	tk := &ticket.Ticket{
+		ID:     "TH-111111",
+		Title:  "Test ticket",
+		Status: ticket.StatusOpen,
+	}
+
+	var buf bytes.Buffer
+	printTicketDetail(&buf, tk, nil)
+
+	output := buf.String()
+	if strings.Contains(output, "Comments:") {
+		t.Error("Output should not contain Comments section when there are no comments")
+	}
+}

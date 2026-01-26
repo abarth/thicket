@@ -238,3 +238,140 @@ func TestStore_SyncOnReopen(t *testing.T) {
 		t.Errorf("List()[0].ID = %q, want TH-external", all[0].ID)
 	}
 }
+
+func TestStore_AddAndGetComments(t *testing.T) {
+	paths, cleanup := setupTestProject(t)
+	defer cleanup()
+
+	store, err := Open(paths)
+	if err != nil {
+		t.Fatalf("Open() error = %v", err)
+	}
+	defer store.Close()
+
+	tk, err := ticket.New("TH", "Test ticket", "Description", 1)
+	if err != nil {
+		t.Fatalf("ticket.New() error = %v", err)
+	}
+
+	if err := store.Add(tk); err != nil {
+		t.Fatalf("Add() error = %v", err)
+	}
+
+	// Add a comment
+	c, err := ticket.NewComment(tk.ID, "Test comment")
+	if err != nil {
+		t.Fatalf("ticket.NewComment() error = %v", err)
+	}
+
+	if err := store.AddComment(c); err != nil {
+		t.Fatalf("AddComment() error = %v", err)
+	}
+
+	// Get comments for ticket
+	comments, err := store.GetComments(tk.ID)
+	if err != nil {
+		t.Fatalf("GetComments() error = %v", err)
+	}
+
+	if len(comments) != 1 {
+		t.Fatalf("GetComments() returned %d comments, want 1", len(comments))
+	}
+
+	if comments[0].ID != c.ID {
+		t.Errorf("comments[0].ID = %q, want %q", comments[0].ID, c.ID)
+	}
+	if comments[0].Content != "Test comment" {
+		t.Errorf("comments[0].Content = %q, want 'Test comment'", comments[0].Content)
+	}
+}
+
+func TestStore_CommentsForNonexistentTicket(t *testing.T) {
+	paths, cleanup := setupTestProject(t)
+	defer cleanup()
+
+	store, err := Open(paths)
+	if err != nil {
+		t.Fatalf("Open() error = %v", err)
+	}
+	defer store.Close()
+
+	// Get comments for nonexistent ticket should return empty slice
+	comments, err := store.GetComments("TH-999999")
+	if err != nil {
+		t.Fatalf("GetComments() error = %v", err)
+	}
+
+	if len(comments) != 0 {
+		t.Errorf("GetComments() returned %d comments, want 0", len(comments))
+	}
+}
+
+func TestStore_MultipleComments(t *testing.T) {
+	paths, cleanup := setupTestProject(t)
+	defer cleanup()
+
+	store, err := Open(paths)
+	if err != nil {
+		t.Fatalf("Open() error = %v", err)
+	}
+	defer store.Close()
+
+	tk, _ := ticket.New("TH", "Test ticket", "", 1)
+	store.Add(tk)
+
+	// Add multiple comments
+	for i := 0; i < 3; i++ {
+		c, _ := ticket.NewComment(tk.ID, "Comment")
+		if err := store.AddComment(c); err != nil {
+			t.Fatalf("AddComment() error = %v", err)
+		}
+	}
+
+	comments, err := store.GetComments(tk.ID)
+	if err != nil {
+		t.Fatalf("GetComments() error = %v", err)
+	}
+
+	if len(comments) != 3 {
+		t.Errorf("GetComments() returned %d comments, want 3", len(comments))
+	}
+}
+
+func TestStore_SyncCommentsOnReopen(t *testing.T) {
+	paths, cleanup := setupTestProject(t)
+	defer cleanup()
+
+	// Create initial store and add a ticket with comment
+	store, err := Open(paths)
+	if err != nil {
+		t.Fatalf("Open() error = %v", err)
+	}
+
+	tk, _ := ticket.New("TH", "Test", "", 1)
+	store.Add(tk)
+
+	c, _ := ticket.NewComment(tk.ID, "Original comment")
+	store.AddComment(c)
+	store.Close()
+
+	// Reopen store - should sync comments from JSONL
+	store2, err := Open(paths)
+	if err != nil {
+		t.Fatalf("Open() error = %v", err)
+	}
+	defer store2.Close()
+
+	comments, err := store2.GetComments(tk.ID)
+	if err != nil {
+		t.Fatalf("GetComments() error = %v", err)
+	}
+
+	if len(comments) != 1 {
+		t.Fatalf("GetComments() returned %d comments, want 1", len(comments))
+	}
+
+	if comments[0].Content != "Original comment" {
+		t.Errorf("comments[0].Content = %q, want 'Original comment'", comments[0].Content)
+	}
+}

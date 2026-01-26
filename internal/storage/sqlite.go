@@ -24,6 +24,15 @@ CREATE TABLE IF NOT EXISTS tickets (
 CREATE INDEX IF NOT EXISTS idx_tickets_status ON tickets(status);
 CREATE INDEX IF NOT EXISTS idx_tickets_priority ON tickets(priority);
 
+CREATE TABLE IF NOT EXISTS comments (
+    id TEXT PRIMARY KEY,
+    ticket_id TEXT NOT NULL,
+    content TEXT NOT NULL,
+    created TEXT NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_comments_ticket_id ON comments(ticket_id);
+
 CREATE TABLE IF NOT EXISTS metadata (
     key TEXT PRIMARY KEY,
     value TEXT
@@ -249,4 +258,121 @@ func (db *DB) ListTickets(status *ticket.Status) ([]*ticket.Ticket, error) {
 // GetAllTickets retrieves all tickets from the database.
 func (db *DB) GetAllTickets() ([]*ticket.Ticket, error) {
 	return db.ListTickets(nil)
+}
+
+// InsertComment adds a new comment to the database.
+func (db *DB) InsertComment(c *ticket.Comment) error {
+	_, err := db.conn.Exec(`
+		INSERT INTO comments (id, ticket_id, content, created)
+		VALUES (?, ?, ?, ?)
+	`,
+		c.ID,
+		c.TicketID,
+		c.Content,
+		c.Created.Format(time.RFC3339Nano),
+	)
+	if err != nil {
+		return fmt.Errorf("inserting comment: %w", err)
+	}
+	return nil
+}
+
+// GetCommentsForTicket retrieves all comments for a ticket, ordered by creation time.
+func (db *DB) GetCommentsForTicket(ticketID string) ([]*ticket.Comment, error) {
+	rows, err := db.conn.Query(`
+		SELECT id, ticket_id, content, created
+		FROM comments WHERE ticket_id = ?
+		ORDER BY created ASC
+	`, ticketID)
+	if err != nil {
+		return nil, fmt.Errorf("querying comments: %w", err)
+	}
+	defer rows.Close()
+
+	var comments []*ticket.Comment
+	for rows.Next() {
+		var c ticket.Comment
+		var created string
+
+		if err := rows.Scan(&c.ID, &c.TicketID, &c.Content, &created); err != nil {
+			return nil, fmt.Errorf("scanning comment: %w", err)
+		}
+
+		c.Created, _ = time.Parse(time.RFC3339Nano, created)
+		comments = append(comments, &c)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("iterating comments: %w", err)
+	}
+
+	return comments, nil
+}
+
+// RebuildFromAll clears all tickets and comments and inserts the given lists.
+func (db *DB) RebuildFromAll(tickets []*ticket.Ticket, comments []*ticket.Comment) error {
+	tx, err := db.conn.Begin()
+	if err != nil {
+		return fmt.Errorf("beginning transaction: %w", err)
+	}
+	defer tx.Rollback()
+
+	if _, err := tx.Exec("DELETE FROM tickets"); err != nil {
+		return fmt.Errorf("clearing tickets: %w", err)
+	}
+
+	if _, err := tx.Exec("DELETE FROM comments"); err != nil {
+		return fmt.Errorf("clearing comments: %w", err)
+	}
+
+	ticketStmt, err := tx.Prepare(`
+		INSERT INTO tickets (id, title, description, status, priority, created, updated)
+		VALUES (?, ?, ?, ?, ?, ?, ?)
+	`)
+	if err != nil {
+		return fmt.Errorf("preparing ticket insert: %w", err)
+	}
+	defer ticketStmt.Close()
+
+	for _, t := range tickets {
+		_, err := ticketStmt.Exec(
+			t.ID,
+			t.Title,
+			t.Description,
+			string(t.Status),
+			t.Priority,
+			t.Created.Format(time.RFC3339Nano),
+			t.Updated.Format(time.RFC3339Nano),
+		)
+		if err != nil {
+			return fmt.Errorf("inserting ticket %s: %w", t.ID, err)
+		}
+	}
+
+	commentStmt, err := tx.Prepare(`
+		INSERT INTO comments (id, ticket_id, content, created)
+		VALUES (?, ?, ?, ?)
+	`)
+	if err != nil {
+		return fmt.Errorf("preparing comment insert: %w", err)
+	}
+	defer commentStmt.Close()
+
+	for _, c := range comments {
+		_, err := commentStmt.Exec(
+			c.ID,
+			c.TicketID,
+			c.Content,
+			c.Created.Format(time.RFC3339Nano),
+		)
+		if err != nil {
+			return fmt.Errorf("inserting comment %s: %w", c.ID, err)
+		}
+	}
+
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("committing transaction: %w", err)
+	}
+
+	return nil
 }

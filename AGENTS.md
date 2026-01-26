@@ -35,7 +35,13 @@ go build -o thicket ./cmd/thicket
    ./thicket add --title "Fix auth timeout" --description "The auth module times out after 30s but should wait 60s. See auth.go:142" --priority 1
    ```
 
-3. **Update tickets as needed**:
+3. **Add comments to track progress**: Document your findings and progress:
+   ```bash
+   ./thicket comment <ID> "Found root cause: missing nil check"
+   ./thicket comment <ID> "Fix implemented, running tests"
+   ```
+
+4. **Update tickets as needed**:
    ```bash
    ./thicket update --description "New information" <ID>
    ```
@@ -79,9 +85,10 @@ thicket/
 
 ## Key Files to Understand
 
-- **docs/overview.md**: Full product vision including features not yet implemented (comments, labels, dependencies, blocking relationships)
+- **docs/overview.md**: Full product vision including features not yet implemented (labels, dependencies, blocking relationships)
 - **docs/mvp.md**: What was implemented in the MVP and the technical design decisions
-- **internal/ticket/ticket.go**: Core data model - understand this first
+- **internal/ticket/ticket.go**: Core ticket data model - understand this first
+- **internal/ticket/comment.go**: Comment data model
 - **internal/storage/**: How data flows between JSONL (source of truth) and SQLite (cache)
 
 ## Development Commands
@@ -100,19 +107,19 @@ go build -o thicket ./cmd/thicket
 go test ./internal/ticket -run TestValidateID -v
 ```
 
-## What's Implemented (MVP)
+## What's Implemented
 
 - Ticket CRUD operations (create, read, update, close)
 - Priority-based listing
 - Status filtering (open/closed)
 - JSONL storage with SQLite caching
 - Automatic sync between JSONL and SQLite
+- **Comments**: Adding timestamped notes to tickets (`./thicket comment <ID> "text"`)
 
 ## What's NOT Yet Implemented
 
 See `docs/overview.md` for the full vision. Key missing features:
 
-- **Comments**: Adding notes to tickets over time
 - **Labels**: Tagging tickets for grouping
 - **Dependencies**: Tracking which tickets block others
 - **Created-from relationships**: Knowing which ticket spawned another
@@ -127,6 +134,13 @@ See `docs/overview.md` for the full vision. Key missing features:
 2. **Commits**: Reference ticket IDs in commit messages when relevant
 3. **Testing**: All new code should have tests. Target 80%+ coverage.
 4. **Error handling**: Use `internal/errors` for user-facing errors with hints
+5. **Documentation**: When adding new features:
+   - Update `README.md` with command usage and examples
+   - Update the quickstart guide in `internal/commands/commands.go`
+   - Update this file (`AGENTS.md`) to reflect what's implemented
+6. **Help text**: When adding new commands:
+   - Add the command to `printUsage()` in `cmd/thicket/main.go`
+   - Include usage examples in the command's `--help` output
 
 ## Common Issues
 

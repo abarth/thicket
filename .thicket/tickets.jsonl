@@ -4,3 +4,5 @@
 {"id":"TH-074604","title":"Add --json output flag","description":"Add a --json flag to all commands for machine-readable output. This enables integration with other agentic tools.","status":"open","priority":2,"created":"2026-01-26T00:24:12.34745Z","updated":"2026-01-26T00:24:12.34745Z"}
 {"id":"TH-ad3195","title":"Add assignee field","description":"Track who is working on each ticket. Simple text field for the assignee name.","status":"open","priority":3,"created":"2026-01-26T00:24:12.353138Z","updated":"2026-01-26T00:24:12.353138Z"}
 {"id":"TH-368714","title":"Add issue type field","description":"Categorize tickets by type: bug, feature, task, etc.","status":"open","priority":3,"created":"2026-01-26T00:24:12.357656Z","updated":"2026-01-26T00:24:12.357656Z"}
+{"id":"TH-cbe695c","ticket_id":"TH-907d31","content":"Starting implementation of comments feature","created":"2026-01-26T00:39:09.70326Z"}
+{"id":"TH-ce44842","ticket_id":"TH-907d31","content":"Storage layer complete","created":"2026-01-26T00:39:27.550304Z"}

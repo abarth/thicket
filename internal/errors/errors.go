@@ -75,3 +75,17 @@ func InvalidStatus(status string) *UserError {
 		"Valid statuses are: open, closed",
 	)
 }
+
+// EmptyComment returns an error for empty comment content.
+func EmptyComment() *UserError {
+	return &UserError{
+		Message: "Comment content cannot be empty",
+	}
+}
+
+// CommentNotFound returns an error for when a comment is not found.
+func CommentNotFound(id string) *UserError {
+	return &UserError{
+		Message: fmt.Sprintf("Comment %s not found", id),
+	}
+}

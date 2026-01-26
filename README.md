@@ -35,6 +35,9 @@ thicket list
 # Show a specific ticket
 thicket show TH-abc123
 
+# Add a comment to a ticket
+thicket comment TH-abc123 "Found the root cause"
+
 # Update a ticket
 thicket update --priority 2 TH-abc123
 
@@ -83,11 +86,24 @@ thicket list [--status <STATUS>]
 
 ### `thicket show`
 
-Display details of a specific ticket.
+Display details of a specific ticket, including any comments.
 
 ```bash
 thicket show <TICKET-ID>
 ```
+
+### `thicket comment`
+
+Add a comment to a ticket. Comments are displayed when viewing the ticket with `show`.
+
+```bash
+thicket comment <TICKET-ID> "Comment text"
+```
+
+Comments are stored as separate lines in `tickets.jsonl` and are useful for:
+- Recording progress on a ticket
+- Noting discoveries or blockers
+- Documenting decisions made while working
 
 ### `thicket update`
 
@@ -132,6 +148,11 @@ Each ticket has:
 | **Priority** | Integer (lower numbers = higher priority) |
 | **Created** | Timestamp when ticket was created |
 | **Updated** | Timestamp of last modification |
+| **Comments** | Timestamped notes added over time |
+
+### Comments
+
+Comments have their own IDs (format: `TH-cXXXXXX`) and are linked to tickets by ticket ID. They are stored as separate lines in `tickets.jsonl` to keep diffs clean when adding comments.
 
 ## Project Structure
 
@@ -165,10 +186,14 @@ Example workflow:
 # Agent discovers a bug
 thicket add --title "Fix null pointer in auth module" --priority 0
 
-# Agent starts working, finds related issue
+# Agent starts working, adds a comment with findings
+thicket comment TH-abc123 "Root cause: missing nil check in validateUser()"
+
+# Agent finds related issue while investigating
 thicket add --title "Refactor auth error handling" --priority 2
 
-# Agent fixes the bug
+# Agent fixes the bug, documents the fix
+thicket comment TH-abc123 "Fixed by adding nil check at auth.go:142"
 thicket close TH-abc123
 
 # Check remaining work

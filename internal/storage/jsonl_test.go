@@ -149,3 +149,136 @@ func TestGetJSONLModTime(t *testing.T) {
 		t.Error("GetJSONLModTime() = 0, want non-zero")
 	}
 }
+
+func TestReadAllJSONL_MixedContent(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "tickets.jsonl")
+
+	now := time.Now().UTC()
+	content := `{"id":"TH-111111","title":"First","description":"","status":"open","priority":1,"created":"2024-01-01T00:00:00Z","updated":"2024-01-01T00:00:00Z"}
+{"id":"TH-c222222","ticket_id":"TH-111111","content":"A comment","created":"2024-01-01T00:01:00Z"}
+{"id":"TH-333333","title":"Second","description":"","status":"open","priority":2,"created":"2024-01-01T00:00:00Z","updated":"2024-01-01T00:00:00Z"}
+{"id":"TH-c444444","ticket_id":"TH-111111","content":"Another comment","created":"2024-01-01T00:02:00Z"}
+`
+	if err := os.WriteFile(path, []byte(content), 0644); err != nil {
+		t.Fatalf("WriteFile() error = %v", err)
+	}
+
+	tickets, comments, err := ReadAllJSONL(path)
+	if err != nil {
+		t.Fatalf("ReadAllJSONL() error = %v", err)
+	}
+
+	if len(tickets) != 2 {
+		t.Errorf("ReadAllJSONL() returned %d tickets, want 2", len(tickets))
+	}
+	if len(comments) != 2 {
+		t.Errorf("ReadAllJSONL() returned %d comments, want 2", len(comments))
+	}
+
+	if tickets[0].ID != "TH-111111" {
+		t.Errorf("tickets[0].ID = %q, want TH-111111", tickets[0].ID)
+	}
+	if tickets[1].ID != "TH-333333" {
+		t.Errorf("tickets[1].ID = %q, want TH-333333", tickets[1].ID)
+	}
+	if comments[0].ID != "TH-c222222" {
+		t.Errorf("comments[0].ID = %q, want TH-c222222", comments[0].ID)
+	}
+	if comments[0].TicketID != "TH-111111" {
+		t.Errorf("comments[0].TicketID = %q, want TH-111111", comments[0].TicketID)
+	}
+	if comments[0].Content != "A comment" {
+		t.Errorf("comments[0].Content = %q, want 'A comment'", comments[0].Content)
+	}
+
+	_ = now // suppress unused variable warning
+}
+
+func TestReadAllJSONL_NonExistent(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "nonexistent.jsonl")
+
+	tickets, comments, err := ReadAllJSONL(path)
+	if err != nil {
+		t.Fatalf("ReadAllJSONL() error = %v", err)
+	}
+	if tickets != nil {
+		t.Errorf("ReadAllJSONL() tickets = %v, want nil", tickets)
+	}
+	if comments != nil {
+		t.Errorf("ReadAllJSONL() comments = %v, want nil", comments)
+	}
+}
+
+func TestAppendComment(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "tickets.jsonl")
+
+	now := time.Now().UTC()
+	c := &ticket.Comment{
+		ID:       "TH-cabcdef",
+		TicketID: "TH-111111",
+		Content:  "Test comment",
+		Created:  now,
+	}
+
+	if err := AppendComment(path, c); err != nil {
+		t.Fatalf("AppendComment() error = %v", err)
+	}
+
+	_, comments, err := ReadAllJSONL(path)
+	if err != nil {
+		t.Fatalf("ReadAllJSONL() error = %v", err)
+	}
+
+	if len(comments) != 1 {
+		t.Fatalf("ReadAllJSONL() returned %d comments, want 1", len(comments))
+	}
+
+	if comments[0].ID != "TH-cabcdef" {
+		t.Errorf("comments[0].ID = %q, want TH-cabcdef", comments[0].ID)
+	}
+	if comments[0].TicketID != "TH-111111" {
+		t.Errorf("comments[0].TicketID = %q, want TH-111111", comments[0].TicketID)
+	}
+	if comments[0].Content != "Test comment" {
+		t.Errorf("comments[0].Content = %q, want 'Test comment'", comments[0].Content)
+	}
+}
+
+func TestWriteAllJSONL(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "tickets.jsonl")
+
+	now := time.Now().UTC()
+	tickets := []*ticket.Ticket{
+		{ID: "TH-111111", Title: "First", Status: ticket.StatusOpen, Priority: 1, Created: now, Updated: now},
+	}
+	comments := []*ticket.Comment{
+		{ID: "TH-cabcdef", TicketID: "TH-111111", Content: "A comment", Created: now},
+	}
+
+	if err := WriteAllJSONL(path, tickets, comments); err != nil {
+		t.Fatalf("WriteAllJSONL() error = %v", err)
+	}
+
+	readTickets, readComments, err := ReadAllJSONL(path)
+	if err != nil {
+		t.Fatalf("ReadAllJSONL() error = %v", err)
+	}
+
+	if len(readTickets) != 1 {
+		t.Errorf("ReadAllJSONL() returned %d tickets, want 1", len(readTickets))
+	}
+	if len(readComments) != 1 {
+		t.Errorf("ReadAllJSONL() returned %d comments, want 1", len(readComments))
+	}
+
+	if readTickets[0].ID != "TH-111111" {
+		t.Errorf("readTickets[0].ID = %q, want TH-111111", readTickets[0].ID)
+	}
+	if readComments[0].ID != "TH-cabcdef" {
+		t.Errorf("readComments[0].ID = %q, want TH-cabcdef", readComments[0].ID)
+	}
+}

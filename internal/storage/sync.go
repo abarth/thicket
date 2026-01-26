@@ -56,12 +56,12 @@ func (s *Store) syncFromJSONL() error {
 	}
 
 	if currentModTime != storedModTime {
-		tickets, err := ReadJSONL(s.paths.Tickets)
+		tickets, comments, err := ReadAllJSONL(s.paths.Tickets)
 		if err != nil {
 			return fmt.Errorf("reading JSONL: %w", err)
 		}
 
-		if err := s.db.RebuildFromTickets(tickets); err != nil {
+		if err := s.db.RebuildFromAll(tickets, comments); err != nil {
 			return fmt.Errorf("rebuilding cache: %w", err)
 		}
 
@@ -135,4 +135,22 @@ func (s *Store) Get(id string) (*ticket.Ticket, error) {
 // List retrieves tickets with optional status filter.
 func (s *Store) List(status *ticket.Status) ([]*ticket.Ticket, error) {
 	return s.db.ListTickets(status)
+}
+
+// AddComment creates a new comment and persists it to both JSONL and SQLite.
+func (s *Store) AddComment(c *ticket.Comment) error {
+	if err := AppendComment(s.paths.Tickets, c); err != nil {
+		return err
+	}
+
+	if err := s.db.InsertComment(c); err != nil {
+		return err
+	}
+
+	return s.updateJSONLModTime()
+}
+
+// GetComments retrieves all comments for a ticket.
+func (s *Store) GetComments(ticketID string) ([]*ticket.Comment, error) {
+	return s.db.GetCommentsForTicket(ticketID)
 }

@@ -234,11 +234,16 @@ func Show(args []string) error {
 		return thickerr.TicketNotFound(ticketID)
 	}
 
-	printTicketDetail(os.Stdout, t)
+	comments, err := store.GetComments(ticketID)
+	if err != nil {
+		return err
+	}
+
+	printTicketDetail(os.Stdout, t, comments)
 	return nil
 }
 
-func printTicketDetail(w io.Writer, t *ticket.Ticket) {
+func printTicketDetail(w io.Writer, t *ticket.Ticket, comments []*ticket.Comment) {
 	fmt.Fprintf(w, "ID:          %s\n", t.ID)
 	fmt.Fprintf(w, "Title:       %s\n", t.Title)
 	fmt.Fprintf(w, "Status:      %s\n", t.Status)
@@ -247,6 +252,12 @@ func printTicketDetail(w io.Writer, t *ticket.Ticket) {
 	fmt.Fprintf(w, "Updated:     %s\n", t.Updated.Format(time.RFC3339))
 	if t.Description != "" {
 		fmt.Fprintf(w, "\nDescription:\n%s\n", t.Description)
+	}
+	if len(comments) > 0 {
+		fmt.Fprintf(w, "\nComments:\n")
+		for _, c := range comments {
+			fmt.Fprintf(w, "  [%s] %s\n", c.Created.Format("2006-01-02 15:04:05"), c.Content)
+		}
 	}
 }
 
@@ -394,6 +405,69 @@ func Close(args []string) error {
 	return nil
 }
 
+// Comment adds a comment to a ticket.
+func Comment(args []string) error {
+	fs := flag.NewFlagSet("comment", flag.ExitOnError)
+	fs.Usage = func() {
+		fmt.Fprintln(os.Stderr, "Usage: thicket comment <TICKET-ID> \"Comment text\"")
+		fmt.Fprintln(os.Stderr, "\nAdd a comment to a ticket.")
+	}
+
+	if err := fs.Parse(args); err != nil {
+		return err
+	}
+
+	if fs.NArg() < 1 {
+		return thickerr.WithHint("Ticket ID is required", "Usage: thicket comment <TICKET-ID> \"Comment text\"")
+	}
+	if fs.NArg() < 2 {
+		return thickerr.WithHint("Comment text is required", "Usage: thicket comment <TICKET-ID> \"Comment text\"")
+	}
+
+	ticketID := normalizeTicketID(fs.Arg(0))
+	if err := ticket.ValidateID(ticketID); err != nil {
+		return thickerr.InvalidTicketID(ticketID)
+	}
+
+	content := fs.Arg(1)
+	if strings.TrimSpace(content) == "" {
+		return thickerr.EmptyComment()
+	}
+
+	root, err := config.FindRoot()
+	if err != nil {
+		return wrapConfigError(err)
+	}
+
+	paths := config.GetPaths(root)
+	store, err := storage.Open(paths)
+	if err != nil {
+		return err
+	}
+	defer store.Close()
+
+	// Verify ticket exists
+	t, err := store.Get(ticketID)
+	if err != nil {
+		return err
+	}
+	if t == nil {
+		return thickerr.TicketNotFound(ticketID)
+	}
+
+	c, err := ticket.NewComment(ticketID, content)
+	if err != nil {
+		return err
+	}
+
+	if err := store.AddComment(c); err != nil {
+		return err
+	}
+
+	fmt.Printf("Added comment %s to ticket %s\n", c.ID, ticketID)
+	return nil
+}
+
 // Quickstart prints guidance for coding agents on using Thicket.
 func Quickstart(args []string) error {
 	fmt.Print(`Thicket Quickstart for Coding Agents
@@ -410,13 +484,17 @@ GETTING STARTED
    thicket list --status open      # Show only open tickets
 
 2. Pick a ticket to work on (lowest priority number = most important):
-   thicket show TH-abc123          # View ticket details
+   thicket show TH-abc123          # View ticket details and comments
 
 3. Create tickets as you discover work:
    thicket add --title "Fix bug in auth" --priority 1
    thicket add --title "Refactor later" --description "Details here" --priority 5
 
-4. Close tickets when done:
+4. Add comments to track progress:
+   thicket comment TH-abc123 "Found root cause in auth.go:142"
+   thicket comment TH-abc123 "Fix implemented, tests passing"
+
+5. Close tickets when done:
    thicket close TH-abc123
 
 WORKFLOW
@@ -425,8 +503,9 @@ WORKFLOW
 When you start a session:
   1. Run 'thicket list' to see what needs to be done
   2. Pick the highest priority (lowest number) open ticket
-  3. Work on it, creating new tickets for issues you discover
-  4. Close the ticket when complete
+  3. Work on it, adding comments as you make progress
+  4. Create new tickets for issues you discover along the way
+  5. Close the ticket when complete
 
 Priority guidelines:
   0 = Critical, blocking other work
@@ -440,6 +519,7 @@ BEST PRACTICES
 - Create tickets for any work you defer ("I'll fix this later")
 - Use descriptive titles that explain WHAT needs to be done
 - Add descriptions for complex issues to capture context
+- Add comments to document your progress and findings
 - Close tickets promptly when work is complete
 - Check 'thicket list' at the start of each session
 
@@ -447,8 +527,9 @@ COMMANDS REFERENCE
 ------------------
 
   thicket list [--status open|closed]     List tickets by priority
-  thicket show <ID>                       View ticket details
+  thicket show <ID>                       View ticket details and comments
   thicket add --title "..." [options]     Create a new ticket
+  thicket comment <ID> "text"             Add a comment to a ticket
   thicket update [options] <ID>           Modify a ticket
   thicket close <ID>                      Mark ticket as closed
   thicket quickstart                      Show this guide
