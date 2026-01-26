@@ -87,7 +87,7 @@ thicket add [--interactive] [--title <TITLE>] [--description <DESC>] [--priority
 ```
 
 **Flags:**
-- `--interactive`, `-i`: Enter interactive mode to provide ticket details.
+- `--interactive`, `-i`: Enter interactive mode to provide ticket details. If title, description, or priority are not provided as flags, the tool will prompt for them.
 - `--title`: Short summary of the ticket (required if not in interactive mode)
 - `--description`: Detailed explanation
 - `--priority`: Integer priority (default: 0, lower = higher priority)
