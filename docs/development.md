@@ -12,6 +12,7 @@ go test ./... -cover
 
 ## Project layout
 
+```
 thicket/
 ├── cmd/thicket/           # CLI entry point
 ├── internal/
