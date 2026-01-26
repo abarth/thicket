@@ -215,6 +215,21 @@ Thicket is designed to help coding agents track their work:
 3. **Update tickets** as you learn more about the problem
 4. **Close tickets** when work is complete
 
+### Claude Code Integration
+
+If you are using [Claude Code](https://claude.ai/code), you can add a `CLAUDE.md` file to your project root to help the agent use Thicket effectively:
+
+```markdown
+# Claude Code Instructions
+
+This project uses Thicket to track work.
+
+## Work Management
+
+- Run `thicket list` to see what needs to be done.
+- Run `thicket quickstart` for a guide on the Thicket workflow.
+```
+
 Example workflow:
 
 ```bash
