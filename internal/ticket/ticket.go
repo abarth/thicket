@@ -25,6 +25,7 @@ type Ticket struct {
 	Description string    `json:"description"`
 	Status      Status    `json:"status"`
 	Priority    int       `json:"priority"`
+	Labels      []string  `json:"labels,omitempty"`
 	Created     time.Time `json:"created"`
 	Updated     time.Time `json:"updated"`
 }
@@ -34,6 +35,7 @@ var (
 	ErrEmptyTitle         = errors.New("ticket title cannot be empty")
 	ErrInvalidStatus      = errors.New("invalid ticket status")
 	ErrInvalidProjectCode = errors.New("project code must be exactly two uppercase letters")
+	ErrInvalidLabel       = errors.New("label must be 1-30 alphanumeric characters, hyphens, or underscores")
 )
 
 // idPattern matches valid ticket IDs: two uppercase letters, hyphen, six alphanumeric chars.
@@ -41,6 +43,9 @@ var idPattern = regexp.MustCompile(`^[A-Z]{2}-[a-z0-9]{6}$`)
 
 // projectCodePattern matches valid project codes: exactly two uppercase letters.
 var projectCodePattern = regexp.MustCompile(`^[A-Z]{2}$`)
+
+// labelPattern matches valid labels: 1-30 alphanumeric characters, hyphens, or underscores.
+var labelPattern = regexp.MustCompile(`^[a-zA-Z0-9_-]{1,30}$`)
 
 // ValidateProjectCode checks if a project code is valid.
 func ValidateProjectCode(code string) error {
@@ -95,8 +100,26 @@ func ValidateStatus(s Status) error {
 	}
 }
 
+// ValidateLabel checks if a label is valid.
+func ValidateLabel(label string) error {
+	if !labelPattern.MatchString(label) {
+		return ErrInvalidLabel
+	}
+	return nil
+}
+
+// ValidateLabels checks if all labels in a slice are valid.
+func ValidateLabels(labels []string) error {
+	for _, label := range labels {
+		if err := ValidateLabel(label); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 // New creates a new ticket with the given parameters.
-func New(projectCode, title, description string, priority int) (*Ticket, error) {
+func New(projectCode, title, description string, priority int, labels []string) (*Ticket, error) {
 	id, err := GenerateID(projectCode)
 	if err != nil {
 		return nil, err
@@ -107,6 +130,10 @@ func New(projectCode, title, description string, priority int) (*Ticket, error) 
 		return nil, ErrEmptyTitle
 	}
 
+	if err := ValidateLabels(labels); err != nil {
+		return nil, err
+	}
+
 	now := time.Now().UTC()
 	return &Ticket{
 		ID:          id,
@@ -114,6 +141,7 @@ func New(projectCode, title, description string, priority int) (*Ticket, error) 
 		Description: strings.TrimSpace(description),
 		Status:      StatusOpen,
 		Priority:    priority,
+		Labels:      labels,
 		Created:     now,
 		Updated:     now,
 	}, nil
@@ -140,7 +168,7 @@ func (t *Ticket) Close() {
 }
 
 // Update modifies the ticket fields and updates the timestamp.
-func (t *Ticket) Update(title, description *string, priority *int, status *Status) error {
+func (t *Ticket) Update(title, description *string, priority *int, status *Status, addLabels, removeLabels []string) error {
 	if title != nil {
 		trimmed := strings.TrimSpace(*title)
 		if trimmed == "" {
@@ -160,6 +188,40 @@ func (t *Ticket) Update(title, description *string, priority *int, status *Statu
 		}
 		t.Status = *status
 	}
+
+	// Handle label additions
+	if len(addLabels) > 0 {
+		if err := ValidateLabels(addLabels); err != nil {
+			return err
+		}
+		// Add labels that don't already exist
+		existing := make(map[string]bool)
+		for _, l := range t.Labels {
+			existing[l] = true
+		}
+		for _, l := range addLabels {
+			if !existing[l] {
+				t.Labels = append(t.Labels, l)
+				existing[l] = true
+			}
+		}
+	}
+
+	// Handle label removals
+	if len(removeLabels) > 0 {
+		toRemove := make(map[string]bool)
+		for _, l := range removeLabels {
+			toRemove[l] = true
+		}
+		filtered := t.Labels[:0]
+		for _, l := range t.Labels {
+			if !toRemove[l] {
+				filtered = append(filtered, l)
+			}
+		}
+		t.Labels = filtered
+	}
+
 	t.Updated = time.Now().UTC()
 	return nil
 }

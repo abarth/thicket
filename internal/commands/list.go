@@ -14,8 +14,9 @@ import (
 func List(args []string) error {
 	fs, jsonOutput, dataDir := newFlagSet("list")
 	statusFilter := fs.String("status", "", "Filter by status (open, closed)")
+	labelFilter := fs.String("label", "", "Filter by label")
 	fs.Usage = func() {
-		fmt.Fprintln(os.Stderr, "Usage: thicket list [--status <STATUS>] [--json] [--data-dir <DIR>]")
+		fmt.Fprintln(os.Stderr, "Usage: thicket list [--status <STATUS>] [--label <LABEL>] [--json] [--data-dir <DIR>]")
 		fmt.Fprintln(os.Stderr, "\nList tickets, ordered by priority.")
 		fmt.Fprintln(os.Stderr, "\nFlags:")
 		fs.PrintDefaults()
@@ -51,7 +52,15 @@ func List(args []string) error {
 		status = &s
 	}
 
-	tickets, err := store.List(status)
+	var tickets []*ticket.Ticket
+	if *labelFilter != "" {
+		if err := ticket.ValidateLabel(*labelFilter); err != nil {
+			return thickerr.WithHint(err.Error(), "Labels must be 1-30 alphanumeric characters, hyphens, or underscores")
+		}
+		tickets, err = store.ListByLabel(*labelFilter, status)
+	} else {
+		tickets, err = store.List(status)
+	}
 	if err != nil {
 		return err
 	}

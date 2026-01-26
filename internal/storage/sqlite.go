@@ -24,6 +24,14 @@ CREATE TABLE IF NOT EXISTS tickets (
 CREATE INDEX IF NOT EXISTS idx_tickets_status ON tickets(status);
 CREATE INDEX IF NOT EXISTS idx_tickets_priority ON tickets(priority);
 
+CREATE TABLE IF NOT EXISTS ticket_labels (
+    ticket_id TEXT NOT NULL,
+    label TEXT NOT NULL,
+    PRIMARY KEY (ticket_id, label)
+);
+
+CREATE INDEX IF NOT EXISTS idx_ticket_labels_label ON ticket_labels(label);
+
 CREATE TABLE IF NOT EXISTS comments (
     id TEXT PRIMARY KEY,
     ticket_id TEXT NOT NULL,
@@ -115,17 +123,27 @@ func (db *DB) RebuildFromTickets(tickets []*ticket.Ticket) error {
 		return fmt.Errorf("clearing tickets: %w", err)
 	}
 
-	stmt, err := tx.Prepare(`
+	if _, err := tx.Exec("DELETE FROM ticket_labels"); err != nil {
+		return fmt.Errorf("clearing ticket labels: %w", err)
+	}
+
+	ticketStmt, err := tx.Prepare(`
 		INSERT INTO tickets (id, title, description, status, priority, created, updated)
 		VALUES (?, ?, ?, ?, ?, ?, ?)
 	`)
 	if err != nil {
 		return fmt.Errorf("preparing insert: %w", err)
 	}
-	defer stmt.Close()
+	defer ticketStmt.Close()
+
+	labelStmt, err := tx.Prepare(`INSERT INTO ticket_labels (ticket_id, label) VALUES (?, ?)`)
+	if err != nil {
+		return fmt.Errorf("preparing label insert: %w", err)
+	}
+	defer labelStmt.Close()
 
 	for _, t := range tickets {
-		_, err := stmt.Exec(
+		_, err := ticketStmt.Exec(
 			t.ID,
 			t.Title,
 			t.Description,
@@ -136,6 +154,12 @@ func (db *DB) RebuildFromTickets(tickets []*ticket.Ticket) error {
 		)
 		if err != nil {
 			return fmt.Errorf("inserting ticket %s: %w", t.ID, err)
+		}
+
+		for _, label := range t.Labels {
+			if _, err := labelStmt.Exec(t.ID, label); err != nil {
+				return fmt.Errorf("inserting label for ticket %s: %w", t.ID, err)
+			}
 		}
 	}
 
@@ -148,7 +172,13 @@ func (db *DB) RebuildFromTickets(tickets []*ticket.Ticket) error {
 
 // InsertTicket adds a new ticket to the database.
 func (db *DB) InsertTicket(t *ticket.Ticket) error {
-	_, err := db.conn.Exec(`
+	tx, err := db.conn.Begin()
+	if err != nil {
+		return fmt.Errorf("beginning transaction: %w", err)
+	}
+	defer tx.Rollback()
+
+	_, err = tx.Exec(`
 		INSERT INTO tickets (id, title, description, status, priority, created, updated)
 		VALUES (?, ?, ?, ?, ?, ?, ?)
 	`,
@@ -163,12 +193,29 @@ func (db *DB) InsertTicket(t *ticket.Ticket) error {
 	if err != nil {
 		return fmt.Errorf("inserting ticket: %w", err)
 	}
+
+	for _, label := range t.Labels {
+		_, err = tx.Exec(`INSERT INTO ticket_labels (ticket_id, label) VALUES (?, ?)`, t.ID, label)
+		if err != nil {
+			return fmt.Errorf("inserting label: %w", err)
+		}
+	}
+
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("committing transaction: %w", err)
+	}
 	return nil
 }
 
 // UpdateTicket updates an existing ticket in the database.
 func (db *DB) UpdateTicket(t *ticket.Ticket) error {
-	result, err := db.conn.Exec(`
+	tx, err := db.conn.Begin()
+	if err != nil {
+		return fmt.Errorf("beginning transaction: %w", err)
+	}
+	defer tx.Rollback()
+
+	result, err := tx.Exec(`
 		UPDATE tickets
 		SET title = ?, description = ?, status = ?, priority = ?, updated = ?
 		WHERE id = ?
@@ -192,6 +239,22 @@ func (db *DB) UpdateTicket(t *ticket.Ticket) error {
 		return fmt.Errorf("ticket %s not found", t.ID)
 	}
 
+	// Replace labels
+	_, err = tx.Exec(`DELETE FROM ticket_labels WHERE ticket_id = ?`, t.ID)
+	if err != nil {
+		return fmt.Errorf("deleting labels: %w", err)
+	}
+
+	for _, label := range t.Labels {
+		_, err = tx.Exec(`INSERT INTO ticket_labels (ticket_id, label) VALUES (?, ?)`, t.ID, label)
+		if err != nil {
+			return fmt.Errorf("inserting label: %w", err)
+		}
+	}
+
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("committing transaction: %w", err)
+	}
 	return nil
 }
 
@@ -217,7 +280,38 @@ func (db *DB) GetTicket(id string) (*ticket.Ticket, error) {
 	t.Created, _ = time.Parse(time.RFC3339Nano, created)
 	t.Updated, _ = time.Parse(time.RFC3339Nano, updated)
 
+	// Fetch labels
+	labels, err := db.getLabelsForTicket(id)
+	if err != nil {
+		return nil, err
+	}
+	t.Labels = labels
+
 	return &t, nil
+}
+
+// getLabelsForTicket retrieves all labels for a ticket.
+func (db *DB) getLabelsForTicket(ticketID string) ([]string, error) {
+	rows, err := db.conn.Query(`SELECT label FROM ticket_labels WHERE ticket_id = ? ORDER BY label`, ticketID)
+	if err != nil {
+		return nil, fmt.Errorf("querying labels: %w", err)
+	}
+	defer rows.Close()
+
+	var labels []string
+	for rows.Next() {
+		var label string
+		if err := rows.Scan(&label); err != nil {
+			return nil, fmt.Errorf("scanning label: %w", err)
+		}
+		labels = append(labels, label)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("iterating labels: %w", err)
+	}
+
+	return labels, nil
 }
 
 // ListTickets retrieves tickets with optional status filter, ordered by priority.
@@ -244,7 +338,16 @@ func (db *DB) ListTickets(status *ticket.Status) ([]*ticket.Ticket, error) {
 	}
 	defer rows.Close()
 
-	return scanTickets(rows)
+	tickets, err := scanTickets(rows)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := db.loadLabelsForTickets(tickets); err != nil {
+		return nil, err
+	}
+
+	return tickets, nil
 }
 
 // ListReadyTickets retrieves open tickets that are not blocked by other open tickets.
@@ -268,7 +371,96 @@ func (db *DB) ListReadyTickets() ([]*ticket.Ticket, error) {
 	}
 	defer rows.Close()
 
-	return scanTickets(rows)
+	tickets, err := scanTickets(rows)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := db.loadLabelsForTickets(tickets); err != nil {
+		return nil, err
+	}
+
+	return tickets, nil
+}
+
+// ListTicketsByLabel retrieves tickets that have the specified label.
+func (db *DB) ListTicketsByLabel(label string, status *ticket.Status) ([]*ticket.Ticket, error) {
+	var rows *sql.Rows
+	var err error
+
+	if status != nil {
+		rows, err = db.conn.Query(`
+			SELECT t.id, t.title, t.description, t.status, t.priority, t.created, t.updated
+			FROM tickets t
+			JOIN ticket_labels tl ON t.id = tl.ticket_id
+			WHERE tl.label = ? AND t.status = ?
+			ORDER BY t.priority ASC, t.created ASC
+		`, label, string(*status))
+	} else {
+		rows, err = db.conn.Query(`
+			SELECT t.id, t.title, t.description, t.status, t.priority, t.created, t.updated
+			FROM tickets t
+			JOIN ticket_labels tl ON t.id = tl.ticket_id
+			WHERE tl.label = ?
+			ORDER BY t.priority ASC, t.created ASC
+		`, label)
+	}
+
+	if err != nil {
+		return nil, fmt.Errorf("querying tickets by label: %w", err)
+	}
+	defer rows.Close()
+
+	tickets, err := scanTickets(rows)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := db.loadLabelsForTickets(tickets); err != nil {
+		return nil, err
+	}
+
+	return tickets, nil
+}
+
+// loadLabelsForTickets fetches and populates labels for a slice of tickets.
+func (db *DB) loadLabelsForTickets(tickets []*ticket.Ticket) error {
+	if len(tickets) == 0 {
+		return nil
+	}
+
+	// Build a map for quick lookup
+	ticketMap := make(map[string]*ticket.Ticket)
+	for _, t := range tickets {
+		ticketMap[t.ID] = t
+	}
+
+	// Fetch all labels for these tickets in one query
+	rows, err := db.conn.Query(`
+		SELECT ticket_id, label FROM ticket_labels
+		WHERE ticket_id IN (SELECT id FROM tickets)
+		ORDER BY ticket_id, label
+	`)
+	if err != nil {
+		return fmt.Errorf("querying labels: %w", err)
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var ticketID, label string
+		if err := rows.Scan(&ticketID, &label); err != nil {
+			return fmt.Errorf("scanning label: %w", err)
+		}
+		if t, ok := ticketMap[ticketID]; ok {
+			t.Labels = append(t.Labels, label)
+		}
+	}
+
+	if err := rows.Err(); err != nil {
+		return fmt.Errorf("iterating labels: %w", err)
+	}
+
+	return nil
 }
 
 func scanTickets(rows *sql.Rows) ([]*ticket.Ticket, error) {
@@ -411,6 +603,10 @@ func (db *DB) RebuildFromAll(tickets []*ticket.Ticket, comments []*ticket.Commen
 		return fmt.Errorf("clearing tickets: %w", err)
 	}
 
+	if _, err := tx.Exec("DELETE FROM ticket_labels"); err != nil {
+		return fmt.Errorf("clearing ticket labels: %w", err)
+	}
+
 	if _, err := tx.Exec("DELETE FROM comments"); err != nil {
 		return fmt.Errorf("clearing comments: %w", err)
 	}
@@ -428,6 +624,12 @@ func (db *DB) RebuildFromAll(tickets []*ticket.Ticket, comments []*ticket.Commen
 	}
 	defer ticketStmt.Close()
 
+	labelStmt, err := tx.Prepare(`INSERT INTO ticket_labels (ticket_id, label) VALUES (?, ?)`)
+	if err != nil {
+		return fmt.Errorf("preparing label insert: %w", err)
+	}
+	defer labelStmt.Close()
+
 	for _, t := range tickets {
 		_, err := ticketStmt.Exec(
 			t.ID,
@@ -440,6 +642,12 @@ func (db *DB) RebuildFromAll(tickets []*ticket.Ticket, comments []*ticket.Commen
 		)
 		if err != nil {
 			return fmt.Errorf("inserting ticket %s: %w", t.ID, err)
+		}
+
+		for _, label := range t.Labels {
+			if _, err := labelStmt.Exec(t.ID, label); err != nil {
+				return fmt.Errorf("inserting label for ticket %s: %w", t.ID, err)
+			}
 		}
 	}
 

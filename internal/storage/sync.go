@@ -137,6 +137,11 @@ func (s *Store) List(status *ticket.Status) ([]*ticket.Ticket, error) {
 	return s.db.ListTickets(status)
 }
 
+// ListByLabel retrieves tickets with the specified label.
+func (s *Store) ListByLabel(label string, status *ticket.Status) ([]*ticket.Ticket, error) {
+	return s.db.ListTicketsByLabel(label, status)
+}
+
 // ListReady retrieves open tickets that are not blocked by other open tickets.
 func (s *Store) ListReady() ([]*ticket.Ticket, error) {
 	return s.db.ListReadyTickets()

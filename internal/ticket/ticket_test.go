@@ -126,7 +126,7 @@ func TestValidateStatus(t *testing.T) {
 }
 
 func TestNew(t *testing.T) {
-	ticket, err := New("TH", "Test ticket", "A description", 1)
+	ticket, err := New("TH", "Test ticket", "A description", 1, nil)
 	if err != nil {
 		t.Fatalf("New() error = %v", err)
 	}
@@ -155,7 +155,7 @@ func TestNew(t *testing.T) {
 }
 
 func TestNew_TrimSpace(t *testing.T) {
-	ticket, err := New("TH", "  Test ticket  ", "  Description  ", 0)
+	ticket, err := New("TH", "  Test ticket  ", "  Description  ", 0, nil)
 	if err != nil {
 		t.Fatalf("New() error = %v", err)
 	}
@@ -169,12 +169,12 @@ func TestNew_TrimSpace(t *testing.T) {
 }
 
 func TestNew_EmptyTitle(t *testing.T) {
-	_, err := New("TH", "", "Description", 0)
+	_, err := New("TH", "", "Description", 0, nil)
 	if err != ErrEmptyTitle {
 		t.Errorf("New() error = %v, want ErrEmptyTitle", err)
 	}
 
-	_, err = New("TH", "   ", "Description", 0)
+	_, err = New("TH", "   ", "Description", 0, nil)
 	if err != ErrEmptyTitle {
 		t.Errorf("New() error = %v, want ErrEmptyTitle", err)
 	}
@@ -240,7 +240,7 @@ func TestTicket_Update(t *testing.T) {
 	newPriority := 2
 	newStatus := StatusClosed
 
-	err := ticket.Update(&newTitle, &newDesc, &newPriority, &newStatus)
+	err := ticket.Update(&newTitle, &newDesc, &newPriority, &newStatus, nil, nil)
 	if err != nil {
 		t.Fatalf("Update() error = %v", err)
 	}
@@ -269,7 +269,7 @@ func TestTicket_Update_Partial(t *testing.T) {
 	}
 
 	newTitle := "Updated"
-	err := ticket.Update(&newTitle, nil, nil, nil)
+	err := ticket.Update(&newTitle, nil, nil, nil, nil, nil)
 	if err != nil {
 		t.Fatalf("Update() error = %v", err)
 	}
@@ -289,7 +289,7 @@ func TestTicket_Update_EmptyTitle(t *testing.T) {
 	}
 
 	emptyTitle := ""
-	err := ticket.Update(&emptyTitle, nil, nil, nil)
+	err := ticket.Update(&emptyTitle, nil, nil, nil, nil, nil)
 	if err != ErrEmptyTitle {
 		t.Errorf("Update() error = %v, want ErrEmptyTitle", err)
 	}
@@ -303,8 +303,128 @@ func TestTicket_Update_InvalidStatus(t *testing.T) {
 	}
 
 	invalidStatus := Status("invalid")
-	err := ticket.Update(nil, nil, nil, &invalidStatus)
+	err := ticket.Update(nil, nil, nil, &invalidStatus, nil, nil)
 	if err != ErrInvalidStatus {
 		t.Errorf("Update() error = %v, want ErrInvalidStatus", err)
+	}
+}
+
+func TestValidateLabel(t *testing.T) {
+	tests := []struct {
+		label   string
+		wantErr bool
+	}{
+		{"bug", false},
+		{"feature", false},
+		{"high-priority", false},
+		{"p1_urgent", false},
+		{"A123", false},
+		{"a", false},
+		{"", true},
+		{"has spaces", true},
+		{"has.dot", true},
+		{"has@symbol", true},
+		{"this-label-is-way-too-long-to-be-valid", true},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.label, func(t *testing.T) {
+			err := ValidateLabel(tt.label)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("ValidateLabel(%q) error = %v, wantErr %v", tt.label, err, tt.wantErr)
+			}
+		})
+	}
+}
+
+func TestNew_WithLabels(t *testing.T) {
+	ticket, err := New("TH", "Test ticket", "Description", 1, []string{"bug", "urgent"})
+	if err != nil {
+		t.Fatalf("New() error = %v", err)
+	}
+
+	if len(ticket.Labels) != 2 {
+		t.Errorf("New().Labels length = %d, want 2", len(ticket.Labels))
+	}
+	if ticket.Labels[0] != "bug" || ticket.Labels[1] != "urgent" {
+		t.Errorf("New().Labels = %v, want [bug, urgent]", ticket.Labels)
+	}
+}
+
+func TestNew_InvalidLabel(t *testing.T) {
+	_, err := New("TH", "Test ticket", "Description", 1, []string{"valid", "has space"})
+	if err != ErrInvalidLabel {
+		t.Errorf("New() error = %v, want ErrInvalidLabel", err)
+	}
+}
+
+func TestTicket_Update_AddLabels(t *testing.T) {
+	ticket := &Ticket{
+		ID:     "TH-abcdef",
+		Title:  "Test",
+		Status: StatusOpen,
+		Labels: []string{"existing"},
+	}
+
+	err := ticket.Update(nil, nil, nil, nil, []string{"new-label"}, nil)
+	if err != nil {
+		t.Fatalf("Update() error = %v", err)
+	}
+
+	if len(ticket.Labels) != 2 {
+		t.Errorf("Update() Labels length = %d, want 2", len(ticket.Labels))
+	}
+}
+
+func TestTicket_Update_RemoveLabels(t *testing.T) {
+	ticket := &Ticket{
+		ID:     "TH-abcdef",
+		Title:  "Test",
+		Status: StatusOpen,
+		Labels: []string{"keep", "remove"},
+	}
+
+	err := ticket.Update(nil, nil, nil, nil, nil, []string{"remove"})
+	if err != nil {
+		t.Fatalf("Update() error = %v", err)
+	}
+
+	if len(ticket.Labels) != 1 {
+		t.Errorf("Update() Labels length = %d, want 1", len(ticket.Labels))
+	}
+	if ticket.Labels[0] != "keep" {
+		t.Errorf("Update() Labels = %v, want [keep]", ticket.Labels)
+	}
+}
+
+func TestTicket_Update_AddDuplicateLabel(t *testing.T) {
+	ticket := &Ticket{
+		ID:     "TH-abcdef",
+		Title:  "Test",
+		Status: StatusOpen,
+		Labels: []string{"existing"},
+	}
+
+	err := ticket.Update(nil, nil, nil, nil, []string{"existing"}, nil)
+	if err != nil {
+		t.Fatalf("Update() error = %v", err)
+	}
+
+	// Should not add duplicate
+	if len(ticket.Labels) != 1 {
+		t.Errorf("Update() Labels length = %d, want 1", len(ticket.Labels))
+	}
+}
+
+func TestTicket_Update_InvalidAddLabel(t *testing.T) {
+	ticket := &Ticket{
+		ID:     "TH-abcdef",
+		Title:  "Test",
+		Status: StatusOpen,
+	}
+
+	err := ticket.Update(nil, nil, nil, nil, []string{"has space"}, nil)
+	if err != ErrInvalidLabel {
+		t.Errorf("Update() error = %v, want ErrInvalidLabel", err)
 	}
 }

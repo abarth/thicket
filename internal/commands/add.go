@@ -14,6 +14,18 @@ import (
 	"github.com/abarth/thicket/internal/ticket"
 )
 
+// labelSlice is a custom flag type that collects multiple --label flags.
+type labelSlice []string
+
+func (l *labelSlice) String() string {
+	return strings.Join(*l, ",")
+}
+
+func (l *labelSlice) Set(value string) error {
+	*l = append(*l, value)
+	return nil
+}
+
 // Add creates a new ticket.
 func Add(args []string) error {
 	fs, jsonOutput, dataDir := newFlagSet("add")
@@ -24,10 +36,12 @@ func Add(args []string) error {
 	blocks := fs.String("blocks", "", "Existing ticket that is blocked by this new ticket")
 	blockedBy := fs.String("blocked-by", "", "Existing ticket that blocks this new ticket")
 	createdFrom := fs.String("created-from", "", "Existing ticket this was created from")
+	var labels labelSlice
+	fs.Var(&labels, "label", "Add a label (can be specified multiple times)")
 
 	fs.BoolVar(interactive, "i", false, "Interactive mode (shorthand)")
 	fs.Usage = func() {
-		fmt.Fprintln(os.Stderr, "Usage: thicket add [--interactive] [--title <TITLE>] [--description <DESC>] [--priority <N>] [--blocks <ID>] [--blocked-by <ID>] [--created-from <ID>] [--json] [--data-dir <DIR>]")
+		fmt.Fprintln(os.Stderr, "Usage: thicket add [--interactive] [--title <TITLE>] [--description <DESC>] [--priority <N>] [--label <LABEL>]... [--blocks <ID>] [--blocked-by <ID>] [--created-from <ID>] [--json] [--data-dir <DIR>]")
 		fmt.Fprintln(os.Stderr, "\nCreate a new ticket.")
 		fmt.Fprintln(os.Stderr, "\nFlags:")
 		fs.PrintDefaults()
@@ -102,7 +116,7 @@ func Add(args []string) error {
 	}
 	defer store.Close()
 
-	t, err := ticket.New(cfg.ProjectCode, *title, *description, *priority)
+	t, err := ticket.New(cfg.ProjectCode, *title, *description, *priority, labels)
 	if err != nil {
 		return err
 	}

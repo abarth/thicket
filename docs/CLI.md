@@ -27,7 +27,7 @@ thicket init --project <CODE>
 Create a new ticket.
 
 ```bash
-thicket add [--interactive] [--title <TITLE>] [--description <DESC>] [--priority <N>] [--blocks <ID>] [--blocked-by <ID>] [--created-from <ID>]
+thicket add [--interactive] [--title <TITLE>] [--description <DESC>] [--priority <N>] [--label <LABEL>]... [--blocks <ID>] [--blocked-by <ID>] [--created-from <ID>]
 ```
 
 **Flags:**
@@ -35,22 +35,36 @@ thicket add [--interactive] [--title <TITLE>] [--description <DESC>] [--priority
 - `--title`: Short summary of the ticket (required if not in interactive mode)
 - `--description`: Detailed explanation
 - `--priority`: Integer priority (default: 0, lower = higher priority)
+- `--label`: Add a label (can be specified multiple times)
 - `--blocks`: Mark an existing ticket as blocked by this new ticket
 - `--blocked-by`: Mark this new ticket as blocked by an existing ticket
 - `--created-from`: Track which existing ticket this new ticket was created from
+
+**Examples:**
+```bash
+# Create a ticket with labels
+thicket add --title "Fix login bug" --label bug --label urgent
+```
 
 ### `thicket list`
 
 List tickets ordered by priority.
 
 ```bash
-thicket list [--status <STATUS>]
+thicket list [--status <STATUS>] [--label <LABEL>]
 ```
 
 **Flags:**
 - `--status`: Filter by status (`open` or `closed`)
+- `--label`: Filter by label
 
 **Alias:** `thicket ls`
+
+**Examples:**
+```bash
+# List all open tickets with the "bug" label
+thicket list --status open --label bug
+```
 
 ### `thicket ready`
 
@@ -119,6 +133,17 @@ thicket update [flags] <TICKET-ID>
 - `--description`: New description
 - `--priority`: New priority
 - `--status`: New status (`open` or `closed`)
+- `--add-label`: Add a label (can be specified multiple times)
+- `--remove-label`: Remove a label (can be specified multiple times)
+
+**Examples:**
+```bash
+# Add a label to an existing ticket
+thicket update --add-label urgent TH-abc123
+
+# Remove a label
+thicket update --remove-label urgent TH-abc123
+```
 
 ### `thicket close`
 

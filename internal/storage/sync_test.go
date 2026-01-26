@@ -51,7 +51,7 @@ func TestStore_AddAndGet(t *testing.T) {
 	}
 	defer store.Close()
 
-	tk, err := ticket.New("TH", "Test ticket", "Description", 1)
+	tk, err := ticket.New("TH", "Test ticket", "Description", 1, nil)
 	if err != nil {
 		t.Fatalf("ticket.New() error = %v", err)
 	}
@@ -86,7 +86,7 @@ func TestStore_Update(t *testing.T) {
 	}
 	defer store.Close()
 
-	tk, err := ticket.New("TH", "Original title", "Description", 1)
+	tk, err := ticket.New("TH", "Original title", "Description", 1, nil)
 	if err != nil {
 		t.Fatalf("ticket.New() error = %v", err)
 	}
@@ -96,7 +96,7 @@ func TestStore_Update(t *testing.T) {
 	}
 
 	newTitle := "Updated title"
-	if err := tk.Update(&newTitle, nil, nil, nil); err != nil {
+	if err := tk.Update(&newTitle, nil, nil, nil, nil, nil); err != nil {
 		t.Fatalf("ticket.Update() error = %v", err)
 	}
 
@@ -126,7 +126,7 @@ func TestStore_List(t *testing.T) {
 
 	// Add some tickets
 	for i := 0; i < 3; i++ {
-		tk, err := ticket.New("TH", "Ticket", "", i)
+		tk, err := ticket.New("TH", "Ticket", "", i, nil)
 		if err != nil {
 			t.Fatalf("ticket.New() error = %v", err)
 		}
@@ -204,7 +204,7 @@ func TestStore_SyncOnReopen(t *testing.T) {
 		t.Fatalf("Open() error = %v", err)
 	}
 
-	tk, _ := ticket.New("TH", "Initial", "", 1)
+	tk, _ := ticket.New("TH", "Initial", "", 1, nil)
 	if err := store.Add(tk); err != nil {
 		t.Fatalf("Add() error = %v", err)
 	}
@@ -249,7 +249,7 @@ func TestStore_AddAndGetComments(t *testing.T) {
 	}
 	defer store.Close()
 
-	tk, err := ticket.New("TH", "Test ticket", "Description", 1)
+	tk, err := ticket.New("TH", "Test ticket", "Description", 1, nil)
 	if err != nil {
 		t.Fatalf("ticket.New() error = %v", err)
 	}
@@ -317,7 +317,7 @@ func TestStore_MultipleComments(t *testing.T) {
 	}
 	defer store.Close()
 
-	tk, _ := ticket.New("TH", "Test ticket", "", 1)
+	tk, _ := ticket.New("TH", "Test ticket", "", 1, nil)
 	store.Add(tk)
 
 	// Add multiple comments
@@ -348,7 +348,7 @@ func TestStore_SyncCommentsOnReopen(t *testing.T) {
 		t.Fatalf("Open() error = %v", err)
 	}
 
-	tk, _ := ticket.New("TH", "Test", "", 1)
+	tk, _ := ticket.New("TH", "Test", "", 1, nil)
 	store.Add(tk)
 
 	c, _ := ticket.NewComment(tk.ID, "Original comment")
@@ -387,8 +387,8 @@ func TestStore_AddAndGetDependencies(t *testing.T) {
 	defer store.Close()
 
 	// Create two tickets
-	tk1, _ := ticket.New("TH", "Blocker ticket", "", 1)
-	tk2, _ := ticket.New("TH", "Blocked ticket", "", 2)
+	tk1, _ := ticket.New("TH", "Blocker ticket", "", 1, nil)
+	tk2, _ := ticket.New("TH", "Blocked ticket", "", 2, nil)
 	store.Add(tk1)
 	store.Add(tk2)
 
@@ -438,9 +438,9 @@ func TestStore_CircularDependencyPrevention(t *testing.T) {
 	defer store.Close()
 
 	// Create three tickets for testing transitive cycle
-	tk1, _ := ticket.New("TH", "Ticket 1", "", 1)
-	tk2, _ := ticket.New("TH", "Ticket 2", "", 2)
-	tk3, _ := ticket.New("TH", "Ticket 3", "", 3)
+	tk1, _ := ticket.New("TH", "Ticket 1", "", 1, nil)
+	tk2, _ := ticket.New("TH", "Ticket 2", "", 2, nil)
+	tk3, _ := ticket.New("TH", "Ticket 3", "", 3, nil)
 	store.Add(tk1)
 	store.Add(tk2)
 	store.Add(tk3)
@@ -469,8 +469,8 @@ func TestStore_DuplicateDependencyPrevention(t *testing.T) {
 	}
 	defer store.Close()
 
-	tk1, _ := ticket.New("TH", "Ticket 1", "", 1)
-	tk2, _ := ticket.New("TH", "Ticket 2", "", 2)
+	tk1, _ := ticket.New("TH", "Ticket 1", "", 1, nil)
+	tk2, _ := ticket.New("TH", "Ticket 2", "", 2, nil)
 	store.Add(tk1)
 	store.Add(tk2)
 
@@ -495,8 +495,8 @@ func TestStore_CreatedFromDependency(t *testing.T) {
 	}
 	defer store.Close()
 
-	parent, _ := ticket.New("TH", "Parent ticket", "", 1)
-	child, _ := ticket.New("TH", "Child ticket", "", 2)
+	parent, _ := ticket.New("TH", "Parent ticket", "", 1, nil)
+	child, _ := ticket.New("TH", "Child ticket", "", 2, nil)
 	store.Add(parent)
 	store.Add(child)
 
@@ -525,8 +525,8 @@ func TestStore_IsBlocked(t *testing.T) {
 	}
 	defer store.Close()
 
-	blocker, _ := ticket.New("TH", "Blocker", "", 1)
-	blocked, _ := ticket.New("TH", "Blocked", "", 2)
+	blocker, _ := ticket.New("TH", "Blocker", "", 1, nil)
+	blocked, _ := ticket.New("TH", "Blocked", "", 2, nil)
 	store.Add(blocker)
 	store.Add(blocked)
 
@@ -566,8 +566,8 @@ func TestStore_SyncDependenciesOnReopen(t *testing.T) {
 		t.Fatalf("Open() error = %v", err)
 	}
 
-	tk1, _ := ticket.New("TH", "Ticket 1", "", 1)
-	tk2, _ := ticket.New("TH", "Ticket 2", "", 2)
+	tk1, _ := ticket.New("TH", "Ticket 1", "", 1, nil)
+	tk2, _ := ticket.New("TH", "Ticket 2", "", 2, nil)
 	store.Add(tk1)
 	store.Add(tk2)
 
@@ -601,7 +601,7 @@ func TestStore_UpdatePreservesCommentsAndDependencies(t *testing.T) {
 	}
 
 	// 1. Add a ticket
-	tk, err := ticket.New("TH", "Test ticket", "Description", 1)
+	tk, err := ticket.New("TH", "Test ticket", "Description", 1, nil)
 	if err != nil {
 		t.Fatalf("ticket.New() error = %v", err)
 	}
@@ -620,7 +620,7 @@ func TestStore_UpdatePreservesCommentsAndDependencies(t *testing.T) {
 	}
 
 	// 3. Add a dependency
-	tk2, err := ticket.New("TH", "Blocked ticket", "Description", 1)
+	tk2, err := ticket.New("TH", "Blocked ticket", "Description", 1, nil)
 	if err != nil {
 		t.Fatalf("ticket.New() error = %v", err)
 	}
@@ -639,7 +639,7 @@ func TestStore_UpdatePreservesCommentsAndDependencies(t *testing.T) {
 
 	// 4. Update the ticket
 	newTitle := "Updated title"
-	if err := tk.Update(&newTitle, nil, nil, nil); err != nil {
+	if err := tk.Update(&newTitle, nil, nil, nil, nil, nil); err != nil {
 		t.Fatalf("tk.Update() error = %v", err)
 	}
 	if err := store.Update(tk); err != nil {
@@ -690,5 +690,157 @@ func TestStore_UpdatePreservesCommentsAndDependencies(t *testing.T) {
 		if deps[0].Type != ticket.DependencyBlockedBy {
 			t.Errorf("Dependency type lost. Got %q, want %q", deps[0].Type, ticket.DependencyBlockedBy)
 		}
+	}
+}
+
+func TestStore_AddWithLabels(t *testing.T) {
+	paths, cleanup := setupTestProject(t)
+	defer cleanup()
+
+	store, err := Open(paths)
+	if err != nil {
+		t.Fatalf("Open() error = %v", err)
+	}
+	defer store.Close()
+
+	tk, err := ticket.New("TH", "Test ticket", "Description", 1, []string{"bug", "urgent"})
+	if err != nil {
+		t.Fatalf("ticket.New() error = %v", err)
+	}
+
+	if err := store.Add(tk); err != nil {
+		t.Fatalf("Add() error = %v", err)
+	}
+
+	got, err := store.Get(tk.ID)
+	if err != nil {
+		t.Fatalf("Get() error = %v", err)
+	}
+	if got == nil {
+		t.Fatal("Get() returned nil")
+	}
+
+	if len(got.Labels) != 2 {
+		t.Errorf("Get().Labels length = %d, want 2", len(got.Labels))
+	}
+}
+
+func TestStore_UpdateLabels(t *testing.T) {
+	paths, cleanup := setupTestProject(t)
+	defer cleanup()
+
+	store, err := Open(paths)
+	if err != nil {
+		t.Fatalf("Open() error = %v", err)
+	}
+	defer store.Close()
+
+	tk, err := ticket.New("TH", "Test ticket", "Description", 1, []string{"initial"})
+	if err != nil {
+		t.Fatalf("ticket.New() error = %v", err)
+	}
+
+	if err := store.Add(tk); err != nil {
+		t.Fatalf("Add() error = %v", err)
+	}
+
+	// Add a new label
+	if err := tk.Update(nil, nil, nil, nil, []string{"added"}, nil); err != nil {
+		t.Fatalf("ticket.Update() error = %v", err)
+	}
+
+	if err := store.Update(tk); err != nil {
+		t.Fatalf("store.Update() error = %v", err)
+	}
+
+	got, err := store.Get(tk.ID)
+	if err != nil {
+		t.Fatalf("Get() error = %v", err)
+	}
+
+	if len(got.Labels) != 2 {
+		t.Errorf("Get().Labels length = %d, want 2", len(got.Labels))
+	}
+}
+
+func TestStore_ListByLabel(t *testing.T) {
+	paths, cleanup := setupTestProject(t)
+	defer cleanup()
+
+	store, err := Open(paths)
+	if err != nil {
+		t.Fatalf("Open() error = %v", err)
+	}
+	defer store.Close()
+
+	// Create tickets with different labels
+	tk1, _ := ticket.New("TH", "Bug ticket", "", 1, []string{"bug"})
+	tk2, _ := ticket.New("TH", "Feature ticket", "", 2, []string{"feature"})
+	tk3, _ := ticket.New("TH", "Bug and feature", "", 3, []string{"bug", "feature"})
+	store.Add(tk1)
+	store.Add(tk2)
+	store.Add(tk3)
+
+	// List by "bug" label
+	bugs, err := store.ListByLabel("bug", nil)
+	if err != nil {
+		t.Fatalf("ListByLabel() error = %v", err)
+	}
+	if len(bugs) != 2 {
+		t.Errorf("ListByLabel(bug) returned %d tickets, want 2", len(bugs))
+	}
+
+	// List by "feature" label
+	features, err := store.ListByLabel("feature", nil)
+	if err != nil {
+		t.Fatalf("ListByLabel() error = %v", err)
+	}
+	if len(features) != 2 {
+		t.Errorf("ListByLabel(feature) returned %d tickets, want 2", len(features))
+	}
+
+	// List by "nonexistent" label
+	none, err := store.ListByLabel("nonexistent", nil)
+	if err != nil {
+		t.Fatalf("ListByLabel() error = %v", err)
+	}
+	if len(none) != 0 {
+		t.Errorf("ListByLabel(nonexistent) returned %d tickets, want 0", len(none))
+	}
+}
+
+func TestStore_LabelsPreservedOnReopen(t *testing.T) {
+	paths, cleanup := setupTestProject(t)
+	defer cleanup()
+
+	// Create store and add ticket with labels
+	store, err := Open(paths)
+	if err != nil {
+		t.Fatalf("Open() error = %v", err)
+	}
+
+	tk, _ := ticket.New("TH", "Test", "", 1, []string{"label1", "label2"})
+	store.Add(tk)
+	store.Close()
+
+	// Delete the cache to force re-sync from JSONL
+	if err := os.Remove(paths.Cache); err != nil {
+		t.Fatalf("Failed to remove cache: %v", err)
+	}
+
+	// Reopen store
+	store2, err := Open(paths)
+	if err != nil {
+		t.Fatalf("Open() error = %v", err)
+	}
+	defer store2.Close()
+
+	got, err := store2.Get(tk.ID)
+	if err != nil {
+		t.Fatalf("Get() error = %v", err)
+	}
+
+	if len(got.Labels) != 2 {
+		t.Errorf("Labels not preserved after reopen. Got %d labels, want 2", len(got.Labels))
 	}
 }

@@ -17,6 +17,10 @@ func Update(args []string) error {
 	description := fs.String("description", "", "New description")
 	priority := fs.Int("priority", -1, "New priority")
 	status := fs.String("status", "", "New status (open, closed)")
+	var addLabels labelSlice
+	var removeLabels labelSlice
+	fs.Var(&addLabels, "add-label", "Add a label (can be specified multiple times)")
+	fs.Var(&removeLabels, "remove-label", "Remove a label (can be specified multiple times)")
 	fs.Usage = func() {
 		fmt.Fprintln(os.Stderr, "Usage: thicket update [flags] <TICKET-ID>")
 		fmt.Fprintln(os.Stderr, "\nUpdate an existing ticket. Only specified fields are changed.")
@@ -81,14 +85,14 @@ func Update(args []string) error {
 		statusPtr = &s
 	}
 
-	if titlePtr == nil && descPtr == nil && priorityPtr == nil && statusPtr == nil {
+	if titlePtr == nil && descPtr == nil && priorityPtr == nil && statusPtr == nil && len(addLabels) == 0 && len(removeLabels) == 0 {
 		return thickerr.WithHint(
 			"No fields to update",
-			"Use --title, --description, --priority, or --status to specify changes",
+			"Use --title, --description, --priority, --status, --add-label, or --remove-label to specify changes",
 		)
 	}
 
-	if err := t.Update(titlePtr, descPtr, priorityPtr, statusPtr); err != nil {
+	if err := t.Update(titlePtr, descPtr, priorityPtr, statusPtr, addLabels, removeLabels); err != nil {
 		return err
 	}
 
