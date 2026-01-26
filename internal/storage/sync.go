@@ -56,12 +56,12 @@ func (s *Store) syncFromJSONL() error {
 	}
 
 	if currentModTime != storedModTime {
-		tickets, comments, err := ReadAllJSONL(s.paths.Tickets)
+		tickets, comments, dependencies, err := ReadAllJSONL(s.paths.Tickets)
 		if err != nil {
 			return fmt.Errorf("reading JSONL: %w", err)
 		}
 
-		if err := s.db.RebuildFromAll(tickets, comments); err != nil {
+		if err := s.db.RebuildFromAll(tickets, comments, dependencies); err != nil {
 			return fmt.Errorf("rebuilding cache: %w", err)
 		}
 
@@ -153,4 +153,163 @@ func (s *Store) AddComment(c *ticket.Comment) error {
 // GetComments retrieves all comments for a ticket.
 func (s *Store) GetComments(ticketID string) ([]*ticket.Comment, error) {
 	return s.db.GetCommentsForTicket(ticketID)
+}
+
+// AddDependency creates a new dependency and persists it to both JSONL and SQLite.
+// For blocked_by dependencies, it validates that no circular dependency would be created.
+func (s *Store) AddDependency(d *ticket.Dependency) error {
+	// Check if dependency already exists
+	exists, err := s.db.DependencyExists(d.FromTicketID, d.ToTicketID, d.Type)
+	if err != nil {
+		return err
+	}
+	if exists {
+		return ticket.ErrDuplicateDependency
+	}
+
+	// For blocked_by dependencies, check for circular dependencies
+	if d.Type == ticket.DependencyBlockedBy {
+		if err := s.checkCircularDependency(d.FromTicketID, d.ToTicketID); err != nil {
+			return err
+		}
+	}
+
+	if err := AppendDependency(s.paths.Tickets, d); err != nil {
+		return err
+	}
+
+	if err := s.db.InsertDependency(d); err != nil {
+		return err
+	}
+
+	return s.updateJSONLModTime()
+}
+
+// checkCircularDependency checks if adding a blocked_by dependency from fromID to toID
+// would create a circular dependency. It traverses the blocked_by graph from toID
+// to see if it can reach fromID.
+func (s *Store) checkCircularDependency(fromID, toID string) error {
+	// Get all blocking dependencies
+	deps, err := s.db.GetBlockingDependencies()
+	if err != nil {
+		return err
+	}
+
+	// Build an adjacency list: blockedBy[A] = [B, C] means A is blocked by B and C
+	blockedBy := make(map[string][]string)
+	for _, d := range deps {
+		blockedBy[d.FromTicketID] = append(blockedBy[d.FromTicketID], d.ToTicketID)
+	}
+
+	// Check if adding fromID -> toID creates a cycle
+	// This would happen if toID transitively blocks fromID
+	// (i.e., if we can reach fromID starting from toID through the blocked_by graph)
+	visited := make(map[string]bool)
+	var canReach func(current, target string) bool
+	canReach = func(current, target string) bool {
+		if current == target {
+			return true
+		}
+		if visited[current] {
+			return false
+		}
+		visited[current] = true
+
+		for _, next := range blockedBy[current] {
+			if canReach(next, target) {
+				return true
+			}
+		}
+		return false
+	}
+
+	if canReach(toID, fromID) {
+		return ticket.ErrCircularDependency
+	}
+
+	return nil
+}
+
+// GetDependenciesFrom retrieves all dependencies from a specific ticket.
+func (s *Store) GetDependenciesFrom(ticketID string) ([]*ticket.Dependency, error) {
+	return s.db.GetDependenciesFrom(ticketID)
+}
+
+// GetDependenciesTo retrieves all dependencies pointing to a specific ticket.
+func (s *Store) GetDependenciesTo(ticketID string) ([]*ticket.Dependency, error) {
+	return s.db.GetDependenciesTo(ticketID)
+}
+
+// GetBlockers retrieves tickets that block the given ticket (blocked_by dependencies).
+func (s *Store) GetBlockers(ticketID string) ([]*ticket.Ticket, error) {
+	deps, err := s.db.GetDependenciesFrom(ticketID)
+	if err != nil {
+		return nil, err
+	}
+
+	var blockers []*ticket.Ticket
+	for _, d := range deps {
+		if d.Type == ticket.DependencyBlockedBy {
+			t, err := s.db.GetTicket(d.ToTicketID)
+			if err != nil {
+				return nil, err
+			}
+			if t != nil {
+				blockers = append(blockers, t)
+			}
+		}
+	}
+	return blockers, nil
+}
+
+// GetBlocking retrieves tickets that are blocked by the given ticket.
+func (s *Store) GetBlocking(ticketID string) ([]*ticket.Ticket, error) {
+	deps, err := s.db.GetDependenciesTo(ticketID)
+	if err != nil {
+		return nil, err
+	}
+
+	var blocking []*ticket.Ticket
+	for _, d := range deps {
+		if d.Type == ticket.DependencyBlockedBy {
+			t, err := s.db.GetTicket(d.FromTicketID)
+			if err != nil {
+				return nil, err
+			}
+			if t != nil {
+				blocking = append(blocking, t)
+			}
+		}
+	}
+	return blocking, nil
+}
+
+// GetCreatedFrom retrieves the parent ticket that this ticket was created from.
+func (s *Store) GetCreatedFrom(ticketID string) (*ticket.Ticket, error) {
+	deps, err := s.db.GetDependenciesFrom(ticketID)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, d := range deps {
+		if d.Type == ticket.DependencyCreatedFrom {
+			return s.db.GetTicket(d.ToTicketID)
+		}
+	}
+	return nil, nil
+}
+
+// IsBlocked checks if a ticket has any open blocking dependencies.
+func (s *Store) IsBlocked(ticketID string) (bool, error) {
+	blockers, err := s.GetBlockers(ticketID)
+	if err != nil {
+		return false, err
+	}
+
+	for _, b := range blockers {
+		if b.Status == ticket.StatusOpen {
+			return true, nil
+		}
+	}
+	return false, nil
 }

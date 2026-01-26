@@ -375,3 +375,218 @@ func TestStore_SyncCommentsOnReopen(t *testing.T) {
 		t.Errorf("comments[0].Content = %q, want 'Original comment'", comments[0].Content)
 	}
 }
+
+func TestStore_AddAndGetDependencies(t *testing.T) {
+	paths, cleanup := setupTestProject(t)
+	defer cleanup()
+
+	store, err := Open(paths)
+	if err != nil {
+		t.Fatalf("Open() error = %v", err)
+	}
+	defer store.Close()
+
+	// Create two tickets
+	tk1, _ := ticket.New("TH", "Blocker ticket", "", 1)
+	tk2, _ := ticket.New("TH", "Blocked ticket", "", 2)
+	store.Add(tk1)
+	store.Add(tk2)
+
+	// Add a blocked_by dependency
+	dep, err := ticket.NewDependency(tk2.ID, tk1.ID, ticket.DependencyBlockedBy)
+	if err != nil {
+		t.Fatalf("ticket.NewDependency() error = %v", err)
+	}
+
+	if err := store.AddDependency(dep); err != nil {
+		t.Fatalf("AddDependency() error = %v", err)
+	}
+
+	// Verify blockers
+	blockers, err := store.GetBlockers(tk2.ID)
+	if err != nil {
+		t.Fatalf("GetBlockers() error = %v", err)
+	}
+	if len(blockers) != 1 {
+		t.Fatalf("GetBlockers() returned %d, want 1", len(blockers))
+	}
+	if blockers[0].ID != tk1.ID {
+		t.Errorf("blockers[0].ID = %q, want %q", blockers[0].ID, tk1.ID)
+	}
+
+	// Verify blocking
+	blocking, err := store.GetBlocking(tk1.ID)
+	if err != nil {
+		t.Fatalf("GetBlocking() error = %v", err)
+	}
+	if len(blocking) != 1 {
+		t.Fatalf("GetBlocking() returned %d, want 1", len(blocking))
+	}
+	if blocking[0].ID != tk2.ID {
+		t.Errorf("blocking[0].ID = %q, want %q", blocking[0].ID, tk2.ID)
+	}
+}
+
+func TestStore_CircularDependencyPrevention(t *testing.T) {
+	paths, cleanup := setupTestProject(t)
+	defer cleanup()
+
+	store, err := Open(paths)
+	if err != nil {
+		t.Fatalf("Open() error = %v", err)
+	}
+	defer store.Close()
+
+	// Create three tickets for testing transitive cycle
+	tk1, _ := ticket.New("TH", "Ticket 1", "", 1)
+	tk2, _ := ticket.New("TH", "Ticket 2", "", 2)
+	tk3, _ := ticket.New("TH", "Ticket 3", "", 3)
+	store.Add(tk1)
+	store.Add(tk2)
+	store.Add(tk3)
+
+	// Create chain: tk1 -> tk2 -> tk3 (tk1 blocked by tk2, tk2 blocked by tk3)
+	dep1, _ := ticket.NewDependency(tk1.ID, tk2.ID, ticket.DependencyBlockedBy)
+	dep2, _ := ticket.NewDependency(tk2.ID, tk3.ID, ticket.DependencyBlockedBy)
+	store.AddDependency(dep1)
+	store.AddDependency(dep2)
+
+	// Try to create cycle: tk3 -> tk1 should fail
+	dep3, _ := ticket.NewDependency(tk3.ID, tk1.ID, ticket.DependencyBlockedBy)
+	err = store.AddDependency(dep3)
+	if err != ticket.ErrCircularDependency {
+		t.Errorf("AddDependency() error = %v, want ErrCircularDependency", err)
+	}
+}
+
+func TestStore_DuplicateDependencyPrevention(t *testing.T) {
+	paths, cleanup := setupTestProject(t)
+	defer cleanup()
+
+	store, err := Open(paths)
+	if err != nil {
+		t.Fatalf("Open() error = %v", err)
+	}
+	defer store.Close()
+
+	tk1, _ := ticket.New("TH", "Ticket 1", "", 1)
+	tk2, _ := ticket.New("TH", "Ticket 2", "", 2)
+	store.Add(tk1)
+	store.Add(tk2)
+
+	dep, _ := ticket.NewDependency(tk1.ID, tk2.ID, ticket.DependencyBlockedBy)
+	store.AddDependency(dep)
+
+	// Try to add same dependency again
+	dep2, _ := ticket.NewDependency(tk1.ID, tk2.ID, ticket.DependencyBlockedBy)
+	err = store.AddDependency(dep2)
+	if err != ticket.ErrDuplicateDependency {
+		t.Errorf("AddDependency() error = %v, want ErrDuplicateDependency", err)
+	}
+}
+
+func TestStore_CreatedFromDependency(t *testing.T) {
+	paths, cleanup := setupTestProject(t)
+	defer cleanup()
+
+	store, err := Open(paths)
+	if err != nil {
+		t.Fatalf("Open() error = %v", err)
+	}
+	defer store.Close()
+
+	parent, _ := ticket.New("TH", "Parent ticket", "", 1)
+	child, _ := ticket.New("TH", "Child ticket", "", 2)
+	store.Add(parent)
+	store.Add(child)
+
+	dep, _ := ticket.NewDependency(child.ID, parent.ID, ticket.DependencyCreatedFrom)
+	store.AddDependency(dep)
+
+	got, err := store.GetCreatedFrom(child.ID)
+	if err != nil {
+		t.Fatalf("GetCreatedFrom() error = %v", err)
+	}
+	if got == nil {
+		t.Fatal("GetCreatedFrom() returned nil")
+	}
+	if got.ID != parent.ID {
+		t.Errorf("GetCreatedFrom().ID = %q, want %q", got.ID, parent.ID)
+	}
+}
+
+func TestStore_IsBlocked(t *testing.T) {
+	paths, cleanup := setupTestProject(t)
+	defer cleanup()
+
+	store, err := Open(paths)
+	if err != nil {
+		t.Fatalf("Open() error = %v", err)
+	}
+	defer store.Close()
+
+	blocker, _ := ticket.New("TH", "Blocker", "", 1)
+	blocked, _ := ticket.New("TH", "Blocked", "", 2)
+	store.Add(blocker)
+	store.Add(blocked)
+
+	// Not blocked yet
+	isBlocked, _ := store.IsBlocked(blocked.ID)
+	if isBlocked {
+		t.Error("IsBlocked() = true, want false (no blockers)")
+	}
+
+	// Add blocker
+	dep, _ := ticket.NewDependency(blocked.ID, blocker.ID, ticket.DependencyBlockedBy)
+	store.AddDependency(dep)
+
+	// Now blocked
+	isBlocked, _ = store.IsBlocked(blocked.ID)
+	if !isBlocked {
+		t.Error("IsBlocked() = false, want true (has open blocker)")
+	}
+
+	// Close the blocker
+	blocker.Close()
+	store.Update(blocker)
+
+	// No longer blocked
+	isBlocked, _ = store.IsBlocked(blocked.ID)
+	if isBlocked {
+		t.Error("IsBlocked() = true, want false (blocker is closed)")
+	}
+}
+
+func TestStore_SyncDependenciesOnReopen(t *testing.T) {
+	paths, cleanup := setupTestProject(t)
+	defer cleanup()
+
+	store, err := Open(paths)
+	if err != nil {
+		t.Fatalf("Open() error = %v", err)
+	}
+
+	tk1, _ := ticket.New("TH", "Ticket 1", "", 1)
+	tk2, _ := ticket.New("TH", "Ticket 2", "", 2)
+	store.Add(tk1)
+	store.Add(tk2)
+
+	dep, _ := ticket.NewDependency(tk2.ID, tk1.ID, ticket.DependencyBlockedBy)
+	store.AddDependency(dep)
+	store.Close()
+
+	// Reopen store - should sync dependencies from JSONL
+	store2, err := Open(paths)
+	if err != nil {
+		t.Fatalf("Open() error = %v", err)
+	}
+	defer store2.Close()
+
+	blockers, err := store2.GetBlockers(tk2.ID)
+	if err != nil {
+		t.Fatalf("GetBlockers() error = %v", err)
+	}
+	if len(blockers) != 1 {
+		t.Fatalf("GetBlockers() returned %d, want 1", len(blockers))
+	}
+}

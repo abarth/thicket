@@ -89,3 +89,33 @@ func CommentNotFound(id string) *UserError {
 		Message: fmt.Sprintf("Comment %s not found", id),
 	}
 }
+
+// CircularDependency returns an error for circular blocking dependencies.
+func CircularDependency() *UserError {
+	return WithHint(
+		"This would create a circular dependency",
+		"A ticket cannot be blocked by a ticket that it transitively blocks",
+	)
+}
+
+// DuplicateDependency returns an error for duplicate dependencies.
+func DuplicateDependency() *UserError {
+	return &UserError{
+		Message: "This dependency already exists",
+	}
+}
+
+// SelfDependency returns an error for self-referential dependencies.
+func SelfDependency() *UserError {
+	return &UserError{
+		Message: "A ticket cannot depend on itself",
+	}
+}
+
+// InvalidDependencyType returns an error for invalid dependency types.
+func InvalidDependencyType(depType string) *UserError {
+	return WithHint(
+		fmt.Sprintf("Invalid dependency type: %s", depType),
+		"Valid types are: blocked_by, created_from",
+	)
+}

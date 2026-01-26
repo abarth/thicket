@@ -33,6 +33,19 @@ CREATE TABLE IF NOT EXISTS comments (
 
 CREATE INDEX IF NOT EXISTS idx_comments_ticket_id ON comments(ticket_id);
 
+CREATE TABLE IF NOT EXISTS dependencies (
+    id TEXT PRIMARY KEY,
+    from_ticket_id TEXT NOT NULL,
+    to_ticket_id TEXT NOT NULL,
+    type TEXT NOT NULL,
+    created TEXT NOT NULL,
+    UNIQUE(from_ticket_id, to_ticket_id, type)
+);
+
+CREATE INDEX IF NOT EXISTS idx_dependencies_from ON dependencies(from_ticket_id);
+CREATE INDEX IF NOT EXISTS idx_dependencies_to ON dependencies(to_ticket_id);
+CREATE INDEX IF NOT EXISTS idx_dependencies_type ON dependencies(type);
+
 CREATE TABLE IF NOT EXISTS metadata (
     key TEXT PRIMARY KEY,
     value TEXT
@@ -309,8 +322,8 @@ func (db *DB) GetCommentsForTicket(ticketID string) ([]*ticket.Comment, error) {
 	return comments, nil
 }
 
-// RebuildFromAll clears all tickets and comments and inserts the given lists.
-func (db *DB) RebuildFromAll(tickets []*ticket.Ticket, comments []*ticket.Comment) error {
+// RebuildFromAll clears all tickets, comments, and dependencies and inserts the given lists.
+func (db *DB) RebuildFromAll(tickets []*ticket.Ticket, comments []*ticket.Comment, dependencies []*ticket.Dependency) error {
 	tx, err := db.conn.Begin()
 	if err != nil {
 		return fmt.Errorf("beginning transaction: %w", err)
@@ -323,6 +336,10 @@ func (db *DB) RebuildFromAll(tickets []*ticket.Ticket, comments []*ticket.Commen
 
 	if _, err := tx.Exec("DELETE FROM comments"); err != nil {
 		return fmt.Errorf("clearing comments: %w", err)
+	}
+
+	if _, err := tx.Exec("DELETE FROM dependencies"); err != nil {
+		return fmt.Errorf("clearing dependencies: %w", err)
 	}
 
 	ticketStmt, err := tx.Prepare(`
@@ -370,9 +387,145 @@ func (db *DB) RebuildFromAll(tickets []*ticket.Ticket, comments []*ticket.Commen
 		}
 	}
 
+	depStmt, err := tx.Prepare(`
+		INSERT INTO dependencies (id, from_ticket_id, to_ticket_id, type, created)
+		VALUES (?, ?, ?, ?, ?)
+	`)
+	if err != nil {
+		return fmt.Errorf("preparing dependency insert: %w", err)
+	}
+	defer depStmt.Close()
+
+	for _, d := range dependencies {
+		_, err := depStmt.Exec(
+			d.ID,
+			d.FromTicketID,
+			d.ToTicketID,
+			string(d.Type),
+			d.Created.Format(time.RFC3339Nano),
+		)
+		if err != nil {
+			return fmt.Errorf("inserting dependency %s: %w", d.ID, err)
+		}
+	}
+
 	if err := tx.Commit(); err != nil {
 		return fmt.Errorf("committing transaction: %w", err)
 	}
 
 	return nil
+}
+
+// InsertDependency adds a new dependency to the database.
+func (db *DB) InsertDependency(d *ticket.Dependency) error {
+	_, err := db.conn.Exec(`
+		INSERT INTO dependencies (id, from_ticket_id, to_ticket_id, type, created)
+		VALUES (?, ?, ?, ?, ?)
+	`,
+		d.ID,
+		d.FromTicketID,
+		d.ToTicketID,
+		string(d.Type),
+		d.Created.Format(time.RFC3339Nano),
+	)
+	if err != nil {
+		return fmt.Errorf("inserting dependency: %w", err)
+	}
+	return nil
+}
+
+// GetDependenciesFrom retrieves all dependencies from a specific ticket.
+func (db *DB) GetDependenciesFrom(ticketID string) ([]*ticket.Dependency, error) {
+	rows, err := db.conn.Query(`
+		SELECT id, from_ticket_id, to_ticket_id, type, created
+		FROM dependencies WHERE from_ticket_id = ?
+		ORDER BY created ASC
+	`, ticketID)
+	if err != nil {
+		return nil, fmt.Errorf("querying dependencies: %w", err)
+	}
+	defer rows.Close()
+
+	return scanDependencies(rows)
+}
+
+// GetDependenciesTo retrieves all dependencies pointing to a specific ticket.
+func (db *DB) GetDependenciesTo(ticketID string) ([]*ticket.Dependency, error) {
+	rows, err := db.conn.Query(`
+		SELECT id, from_ticket_id, to_ticket_id, type, created
+		FROM dependencies WHERE to_ticket_id = ?
+		ORDER BY created ASC
+	`, ticketID)
+	if err != nil {
+		return nil, fmt.Errorf("querying dependencies: %w", err)
+	}
+	defer rows.Close()
+
+	return scanDependencies(rows)
+}
+
+// GetAllDependencies retrieves all dependencies from the database.
+func (db *DB) GetAllDependencies() ([]*ticket.Dependency, error) {
+	rows, err := db.conn.Query(`
+		SELECT id, from_ticket_id, to_ticket_id, type, created
+		FROM dependencies
+		ORDER BY created ASC
+	`)
+	if err != nil {
+		return nil, fmt.Errorf("querying dependencies: %w", err)
+	}
+	defer rows.Close()
+
+	return scanDependencies(rows)
+}
+
+// GetBlockingDependencies retrieves all blocked_by dependencies from the database.
+func (db *DB) GetBlockingDependencies() ([]*ticket.Dependency, error) {
+	rows, err := db.conn.Query(`
+		SELECT id, from_ticket_id, to_ticket_id, type, created
+		FROM dependencies WHERE type = ?
+		ORDER BY created ASC
+	`, string(ticket.DependencyBlockedBy))
+	if err != nil {
+		return nil, fmt.Errorf("querying blocking dependencies: %w", err)
+	}
+	defer rows.Close()
+
+	return scanDependencies(rows)
+}
+
+// DependencyExists checks if a specific dependency already exists.
+func (db *DB) DependencyExists(fromTicketID, toTicketID string, depType ticket.DependencyType) (bool, error) {
+	var count int
+	err := db.conn.QueryRow(`
+		SELECT COUNT(*) FROM dependencies
+		WHERE from_ticket_id = ? AND to_ticket_id = ? AND type = ?
+	`, fromTicketID, toTicketID, string(depType)).Scan(&count)
+	if err != nil {
+		return false, fmt.Errorf("checking dependency existence: %w", err)
+	}
+	return count > 0, nil
+}
+
+func scanDependencies(rows *sql.Rows) ([]*ticket.Dependency, error) {
+	var dependencies []*ticket.Dependency
+	for rows.Next() {
+		var d ticket.Dependency
+		var depType string
+		var created string
+
+		if err := rows.Scan(&d.ID, &d.FromTicketID, &d.ToTicketID, &depType, &created); err != nil {
+			return nil, fmt.Errorf("scanning dependency: %w", err)
+		}
+
+		d.Type = ticket.DependencyType(depType)
+		d.Created, _ = time.Parse(time.RFC3339Nano, created)
+		dependencies = append(dependencies, &d)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("iterating dependencies: %w", err)
+	}
+
+	return dependencies, nil
 }

@@ -239,23 +239,79 @@ func Show(args []string) error {
 		return err
 	}
 
-	printTicketDetail(os.Stdout, t, comments)
+	blockedBy, err := store.GetBlockers(ticketID)
+	if err != nil {
+		return err
+	}
+
+	blocking, err := store.GetBlocking(ticketID)
+	if err != nil {
+		return err
+	}
+
+	createdFrom, err := store.GetCreatedFrom(ticketID)
+	if err != nil {
+		return err
+	}
+
+	details := &TicketDetails{
+		Ticket:      t,
+		Comments:    comments,
+		BlockedBy:   blockedBy,
+		Blocking:    blocking,
+		CreatedFrom: createdFrom,
+	}
+
+	printTicketDetail(os.Stdout, details)
 	return nil
 }
 
-func printTicketDetail(w io.Writer, t *ticket.Ticket, comments []*ticket.Comment) {
+// TicketDetails holds all information about a ticket for display.
+type TicketDetails struct {
+	Ticket      *ticket.Ticket
+	Comments    []*ticket.Comment
+	BlockedBy   []*ticket.Ticket
+	Blocking    []*ticket.Ticket
+	CreatedFrom *ticket.Ticket
+}
+
+func printTicketDetail(w io.Writer, details *TicketDetails) {
+	t := details.Ticket
 	fmt.Fprintf(w, "ID:          %s\n", t.ID)
 	fmt.Fprintf(w, "Title:       %s\n", t.Title)
 	fmt.Fprintf(w, "Status:      %s\n", t.Status)
 	fmt.Fprintf(w, "Priority:    %d\n", t.Priority)
 	fmt.Fprintf(w, "Created:     %s\n", t.Created.Format(time.RFC3339))
 	fmt.Fprintf(w, "Updated:     %s\n", t.Updated.Format(time.RFC3339))
+
+	if details.CreatedFrom != nil {
+		fmt.Fprintf(w, "Created from: %s (%s)\n", details.CreatedFrom.ID, details.CreatedFrom.Title)
+	}
+
+	if len(details.BlockedBy) > 0 {
+		fmt.Fprintf(w, "\nBlocked by:\n")
+		for _, b := range details.BlockedBy {
+			status := ""
+			if b.Status == ticket.StatusClosed {
+				status = " [closed]"
+			}
+			fmt.Fprintf(w, "  - %s: %s%s\n", b.ID, b.Title, status)
+		}
+	}
+
+	if len(details.Blocking) > 0 {
+		fmt.Fprintf(w, "\nBlocking:\n")
+		for _, b := range details.Blocking {
+			fmt.Fprintf(w, "  - %s: %s\n", b.ID, b.Title)
+		}
+	}
+
 	if t.Description != "" {
 		fmt.Fprintf(w, "\nDescription:\n%s\n", t.Description)
 	}
-	if len(comments) > 0 {
+	if len(details.Comments) > 0 {
 		fmt.Fprintf(w, "\nComments:\n")
-		for _, c := range comments {
+		for _, c := range details.Comments {
 			fmt.Fprintf(w, "  [%s] %s\n", c.Created.Format("2006-01-02 15:04:05"), c.Content)
 		}
 	}
@@ -468,6 +524,128 @@ func Comment(args []string) error {
 	return nil
 }
 
+// Link creates a dependency between two tickets.
+func Link(args []string) error {
+	fs := flag.NewFlagSet("link", flag.ExitOnError)
+	blockedBy := fs.String("blocked-by", "", "Ticket that blocks this one")
+	createdFrom := fs.String("created-from", "", "Ticket this was created from")
+	fs.Usage = func() {
+		fmt.Fprintln(os.Stderr, "Usage: thicket link [flags] <TICKET-ID>")
+		fmt.Fprintln(os.Stderr, "\nCreate a dependency relationship between tickets.")
+		fmt.Fprintln(os.Stderr, "\nDependency Types:")
+		fmt.Fprintln(os.Stderr, "  --blocked-by    Mark a ticket as blocked by another ticket")
+		fmt.Fprintln(os.Stderr, "  --created-from  Track which ticket this was created from")
+		fmt.Fprintln(os.Stderr, "\nFlags:")
+		fs.PrintDefaults()
+		fmt.Fprintln(os.Stderr, "\nExamples:")
+		fmt.Fprintln(os.Stderr, "  thicket link --blocked-by TH-def456 TH-abc123")
+		fmt.Fprintln(os.Stderr, "  thicket link --created-from TH-def456 TH-abc123")
+	}
+
+	if err := fs.Parse(args); err != nil {
+		return err
+	}
+
+	if fs.NArg() < 1 {
+		return thickerr.WithHint("Ticket ID is required", "Usage: thicket link <TICKET-ID> --blocked-by <ID>")
+	}
+
+	ticketID := normalizeTicketID(fs.Arg(0))
+	if err := ticket.ValidateID(ticketID); err != nil {
+		return thickerr.InvalidTicketID(ticketID)
+	}
+
+	if *blockedBy == "" && *createdFrom == "" {
+		return thickerr.WithHint(
+			"No dependency type specified",
+			"Use --blocked-by or --created-from to specify the dependency type",
+		)
+	}
+
+	if *blockedBy != "" && *createdFrom != "" {
+		return thickerr.WithHint(
+			"Cannot specify both --blocked-by and --created-from",
+			"Use separate commands for different dependency types",
+		)
+	}
+
+	root, err := config.FindRoot()
+	if err != nil {
+		return wrapConfigError(err)
+	}
+
+	paths := config.GetPaths(root)
+	store, err := storage.Open(paths)
+	if err != nil {
+		return err
+	}
+	defer store.Close()
+
+	// Verify the main ticket exists
+	t, err := store.Get(ticketID)
+	if err != nil {
+		return err
+	}
+	if t == nil {
+		return thickerr.TicketNotFound(ticketID)
+	}
+
+	var targetID string
+	var depType ticket.DependencyType
+
+	if *blockedBy != "" {
+		targetID = normalizeTicketID(*blockedBy)
+		depType = ticket.DependencyBlockedBy
+	} else {
+		targetID = normalizeTicketID(*createdFrom)
+		depType = ticket.DependencyCreatedFrom
+	}
+
+	if err := ticket.ValidateID(targetID); err != nil {
+		return thickerr.InvalidTicketID(targetID)
+	}
+
+	// Verify target ticket exists
+	target, err := store.Get(targetID)
+	if err != nil {
+		return err
+	}
+	if target == nil {
+		return thickerr.TicketNotFound(targetID)
+	}
+
+	dep, err := ticket.NewDependency(ticketID, targetID, depType)
+	if err != nil {
+		switch err {
+		case ticket.ErrSelfDependency:
+			return thickerr.SelfDependency()
+		case ticket.ErrInvalidDependencyType:
+			return thickerr.InvalidDependencyType(string(depType))
+		default:
+			return err
+		}
+	}
+
+	if err := store.AddDependency(dep); err != nil {
+		switch err {
+		case ticket.ErrCircularDependency:
+			return thickerr.CircularDependency()
+		case ticket.ErrDuplicateDependency:
+			return thickerr.DuplicateDependency()
+		default:
+			return err
+		}
+	}
+
+	if depType == ticket.DependencyBlockedBy {
+		fmt.Printf("Ticket %s is now blocked by %s\n", ticketID, targetID)
+	} else {
+		fmt.Printf("Ticket %s was created from %s\n", ticketID, targetID)
+	}
+
+	return nil
+}
+
 // Quickstart prints guidance for coding agents on using Thicket.
 func Quickstart(args []string) error {
 	fmt.Print(`Thicket Quickstart for Coding Agents
@@ -494,7 +672,11 @@ GETTING STARTED
    thicket comment TH-abc123 "Found root cause in auth.go:142"
    thicket comment TH-abc123 "Fix implemented, tests passing"
 
-5. Close tickets when done:
+5. Link tickets with dependencies:
+   thicket link --blocked-by TH-blocker TH-blocked   # TH-blocked is blocked by TH-blocker
+   thicket link --created-from TH-parent TH-child    # TH-child was created from TH-parent
+
+6. Close tickets when done:
    thicket close TH-abc123
 
 WORKFLOW
@@ -527,9 +709,10 @@ COMMANDS REFERENCE
 ------------------
 
   thicket list [--status open|closed]     List tickets by priority
-  thicket show <ID>                       View ticket details and comments
+  thicket show <ID>                       View ticket details and dependencies
   thicket add --title "..." [options]     Create a new ticket
   thicket comment <ID> "text"             Add a comment to a ticket
+  thicket link [flags] <ID>               Create ticket dependencies
   thicket update [options] <ID>           Modify a ticket
   thicket close <ID>                      Mark ticket as closed
   thicket quickstart                      Show this guide

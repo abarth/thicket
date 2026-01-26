@@ -690,8 +690,13 @@ func TestPrintTicketDetail_WithComments(t *testing.T) {
 		{ID: "TH-c222222", TicketID: "TH-111111", Content: "Second comment"},
 	}
 
+	details := &TicketDetails{
+		Ticket:   tk,
+		Comments: comments,
+	}
+
 	var buf bytes.Buffer
-	printTicketDetail(&buf, tk, comments)
+	printTicketDetail(&buf, details)
 
 	output := buf.String()
 	if !strings.Contains(output, "TH-111111") {
@@ -715,8 +720,12 @@ func TestPrintTicketDetail_NoComments(t *testing.T) {
 		Status: ticket.StatusOpen,
 	}
 
+	details := &TicketDetails{
+		Ticket: tk,
+	}
+
 	var buf bytes.Buffer
-	printTicketDetail(&buf, tk, nil)
+	printTicketDetail(&buf, details)
 
 	output := buf.String()
 	if strings.Contains(output, "Comments:") {

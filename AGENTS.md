@@ -41,7 +41,13 @@ go build -o thicket ./cmd/thicket
    ./thicket comment <ID> "Fix implemented, running tests"
    ```
 
-4. **Update tickets as needed**:
+4. **Link tickets with dependencies**: Track blocking relationships:
+   ```bash
+   ./thicket link --blocked-by <BLOCKER-ID> <BLOCKED-ID>
+   ./thicket link --created-from <PARENT-ID> <CHILD-ID>
+   ```
+
+5. **Update tickets as needed**:
    ```bash
    ./thicket update --description "New information" <ID>
    ```

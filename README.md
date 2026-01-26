@@ -105,6 +105,31 @@ Comments are stored as separate lines in `tickets.jsonl` and are useful for:
 - Noting discoveries or blockers
 - Documenting decisions made while working
 
+### `thicket link`
+
+Create dependencies between tickets.
+
+```bash
+thicket link [flags] <TICKET-ID>
+```
+
+**Flags:**
+- `--blocked-by`: Mark this ticket as blocked by another ticket
+- `--created-from`: Track which ticket this was created from
+
+**Examples:**
+```bash
+# TH-child is blocked by TH-blocker (TH-child cannot proceed until TH-blocker is closed)
+thicket link --blocked-by TH-blocker TH-child
+
+# Track that TH-child was created while working on TH-parent
+thicket link --created-from TH-parent TH-child
+```
+
+**Notes:**
+- Circular blocking dependencies are automatically detected and prevented
+- The `show` command displays both "Blocked by" and "Blocking" relationships
+
 ### `thicket update`
 
 Modify an existing ticket.
@@ -149,10 +174,20 @@ Each ticket has:
 | **Created** | Timestamp when ticket was created |
 | **Updated** | Timestamp of last modification |
 | **Comments** | Timestamped notes added over time |
+| **Dependencies** | Links to blocking or related tickets |
 
 ### Comments
 
 Comments have their own IDs (format: `TH-cXXXXXX`) and are linked to tickets by ticket ID. They are stored as separate lines in `tickets.jsonl` to keep diffs clean when adding comments.
+
+### Dependencies
+
+Dependencies track relationships between tickets:
+
+- **blocked_by**: Indicates that a ticket cannot proceed until another ticket is completed
+- **created_from**: Tracks that a ticket was created while working on another ticket
+
+Dependencies have their own IDs (format: `TH-dXXXXXX`) and are stored as separate lines in `tickets.jsonl`. Circular blocking dependencies are automatically prevented.
 
 ## Project Structure
 

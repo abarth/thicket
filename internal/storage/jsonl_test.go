@@ -164,7 +164,7 @@ func TestReadAllJSONL_MixedContent(t *testing.T) {
 		t.Fatalf("WriteFile() error = %v", err)
 	}
 
-	tickets, comments, err := ReadAllJSONL(path)
+	tickets, comments, deps, err := ReadAllJSONL(path)
 	if err != nil {
 		t.Fatalf("ReadAllJSONL() error = %v", err)
 	}
@@ -174,6 +174,9 @@ func TestReadAllJSONL_MixedContent(t *testing.T) {
 	}
 	if len(comments) != 2 {
 		t.Errorf("ReadAllJSONL() returned %d comments, want 2", len(comments))
+	}
+	if len(deps) != 0 {
+		t.Errorf("ReadAllJSONL() returned %d dependencies, want 0", len(deps))
 	}
 
 	if tickets[0].ID != "TH-111111" {
@@ -199,7 +202,7 @@ func TestReadAllJSONL_NonExistent(t *testing.T) {
 	dir := t.TempDir()
 	path := filepath.Join(dir, "nonexistent.jsonl")
 
-	tickets, comments, err := ReadAllJSONL(path)
+	tickets, comments, deps, err := ReadAllJSONL(path)
 	if err != nil {
 		t.Fatalf("ReadAllJSONL() error = %v", err)
 	}
@@ -208,6 +211,9 @@ func TestReadAllJSONL_NonExistent(t *testing.T) {
 	}
 	if comments != nil {
 		t.Errorf("ReadAllJSONL() comments = %v, want nil", comments)
+	}
+	if deps != nil {
+		t.Errorf("ReadAllJSONL() dependencies = %v, want nil", deps)
 	}
 }
 
@@ -227,7 +233,7 @@ func TestAppendComment(t *testing.T) {
 		t.Fatalf("AppendComment() error = %v", err)
 	}
 
-	_, comments, err := ReadAllJSONL(path)
+	_, comments, _, err := ReadAllJSONL(path)
 	if err != nil {
 		t.Fatalf("ReadAllJSONL() error = %v", err)
 	}
@@ -259,11 +265,11 @@ func TestWriteAllJSONL(t *testing.T) {
 		{ID: "TH-cabcdef", TicketID: "TH-111111", Content: "A comment", Created: now},
 	}
 
-	if err := WriteAllJSONL(path, tickets, comments); err != nil {
+	if err := WriteAllJSONL(path, tickets, comments, nil); err != nil {
 		t.Fatalf("WriteAllJSONL() error = %v", err)
 	}
 
-	readTickets, readComments, err := ReadAllJSONL(path)
+	readTickets, readComments, _, err := ReadAllJSONL(path)
 	if err != nil {
 		t.Fatalf("ReadAllJSONL() error = %v", err)
 	}
