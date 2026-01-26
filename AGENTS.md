@@ -29,7 +29,12 @@ go build -o thicket ./cmd/thicket
 
 1. **Create tickets for new work**: When you discover bugs, tasks, or improvements:
    ```bash
+   # Basic use
    ./thicket add --json --title "Brief description" --priority N
+
+   # Create and link in one command
+   ./thicket add --json --title "Follow-on task" --created-from <CURRENT-ID>
+   ./thicket add --json --title "Urgent blocker" --blocks <EXISTING-ID> --priority 0
    ```
 
 2. **Add context to tickets**: Use descriptions for complex issues:
@@ -56,13 +61,10 @@ go build -o thicket ./cmd/thicket
 
 ### When Completing Work
 
-1. **Check for follow-on work**: If you discovered additional bugs, tasks, or improvements that you are not addressing in your current task, create new tickets for them and link them to the current ticket using `--created-from`. This ensures that work discovered during the current task is not lost.
+1. **Check for follow-on work**: If you discovered additional bugs, tasks, or improvements that you are not addressing in your current task, create new tickets for them. You can link them to the current ticket using `--created-from` directly when adding them.
    ```bash
-   # Create follow-on ticket
-   ./thicket add --json --title "Follow-on task" --priority 2
-
-   # Link it to the current ticket
-   ./thicket link --json --created-from <CURRENT-ID> <NEW-ID>
+   # Create follow-on ticket and link it to the current ticket in one step
+   ./thicket add --json --title "Follow-on task" --priority 2 --created-from <CURRENT-ID>
    ```
 2. **Close the ticket**: `./thicket close --json <ID>`
 3. **Verify no regressions**: Run `go test ./...`

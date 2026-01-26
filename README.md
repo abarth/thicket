@@ -83,7 +83,7 @@ thicket init --project <CODE>
 Create a new ticket.
 
 ```bash
-thicket add [--interactive] [--title <TITLE>] [--description <DESC>] [--priority <N>]
+thicket add [--interactive] [--title <TITLE>] [--description <DESC>] [--priority <N>] [--blocks <ID>] [--blocked-by <ID>] [--created-from <ID>]
 ```
 
 **Flags:**
@@ -91,6 +91,9 @@ thicket add [--interactive] [--title <TITLE>] [--description <DESC>] [--priority
 - `--title`: Short summary of the ticket (required if not in interactive mode)
 - `--description`: Detailed explanation
 - `--priority`: Integer priority (default: 0, lower = higher priority)
+- `--blocks`: Mark an existing ticket as blocked by this new ticket
+- `--blocked-by`: Mark this new ticket as blocked by an existing ticket
+- `--created-from`: Track which existing ticket this new ticket was created from
 
 ### `thicket list`
 
@@ -239,10 +242,38 @@ your-project/
 
 Thicket is designed to help coding agents track their work:
 
-1. **Create tickets** when you identify tasks or issues
-2. **Set priorities** to determine work order (lower = more urgent)
-3. **Update tickets** as you learn more about the problem
-4. **Close tickets** when work is complete
+1. **Create tickets for new work**: When you discover bugs, tasks, or improvements:
+   ```bash
+   # Basic use
+   thicket add --json --title "Brief description" --priority N
+
+   # Create and link in one command
+   thicket add --json --title "Follow-on task" --created-from <CURRENT-ID>
+   thicket add --json --title "Urgent blocker" --blocks <EXISTING-ID> --priority 0
+   ```
+
+2. **Add context to tickets**: Use descriptions for complex issues:
+   ```bash
+   thicket add --json --title "Complex task" --description "Detailed explanation of the problem and potential solutions."
+   ```
+
+3. **Manage dependencies**:
+   - **Identify blockers**: If a new ticket cannot proceed until another is completed, use `--blocked-by`.
+     ```bash
+     thicket add --json --title "Implement feature X" --blocked-by TH-abc123
+     ```
+   - **Mark blocking tickets**: If a new ticket will block an existing one, use `--blocks`.
+     ```bash
+     thicket add --json --title "Refactor core module" --blocks TH-def456
+     ```
+   - **Check for follow-on work**: If you discovered additional bugs, tasks, or improvements that you are not addressing in your current task, create new tickets for them. You can link them to the current ticket using `--created-from` directly when adding them.
+     ```bash
+     # Create follow-on ticket and link it to the current ticket in one step
+     thicket add --json --title "Follow-on task" --priority 2 --created-from <CURRENT-ID>
+     ```
+
+4. **Update tickets** as you learn more about the problem
+5. **Close tickets** when work is complete
 
 ### Claude Code Integration
 
