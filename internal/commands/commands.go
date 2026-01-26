@@ -98,6 +98,9 @@ func printTicketDetail(w io.Writer, details *TicketDetails) {
 	fmt.Fprintf(w, "Title:       %s\n", t.Title)
 	fmt.Fprintf(w, "Status:      %s\n", t.Status)
 	fmt.Fprintf(w, "Priority:    %d\n", t.Priority)
+	if t.Assignee != "" {
+		fmt.Fprintf(w, "Assignee:    %s\n", t.Assignee)
+	}
 	if len(t.Labels) > 0 {
 		fmt.Fprintf(w, "Labels:      %s\n", strings.Join(t.Labels, ", "))
 	}

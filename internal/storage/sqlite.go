@@ -17,6 +17,7 @@ CREATE TABLE IF NOT EXISTS tickets (
     description TEXT,
     status TEXT NOT NULL DEFAULT 'open',
     priority INTEGER NOT NULL DEFAULT 0,
+    assignee TEXT DEFAULT '',
     created TEXT NOT NULL,
     updated TEXT NOT NULL
 );
@@ -128,8 +129,8 @@ func (db *DB) RebuildFromTickets(tickets []*ticket.Ticket) error {
 	}
 
 	ticketStmt, err := tx.Prepare(`
-		INSERT INTO tickets (id, title, description, status, priority, created, updated)
-		VALUES (?, ?, ?, ?, ?, ?, ?)
+		INSERT INTO tickets (id, title, description, status, priority, assignee, created, updated)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?)
 	`)
 	if err != nil {
 		return fmt.Errorf("preparing insert: %w", err)
@@ -149,6 +150,7 @@ func (db *DB) RebuildFromTickets(tickets []*ticket.Ticket) error {
 			t.Description,
 			string(t.Status),
 			t.Priority,
+			t.Assignee,
 			t.Created.Format(time.RFC3339Nano),
 			t.Updated.Format(time.RFC3339Nano),
 		)
@@ -179,14 +181,15 @@ func (db *DB) InsertTicket(t *ticket.Ticket) error {
 	defer tx.Rollback()
 
 	_, err = tx.Exec(`
-		INSERT INTO tickets (id, title, description, status, priority, created, updated)
-		VALUES (?, ?, ?, ?, ?, ?, ?)
+		INSERT INTO tickets (id, title, description, status, priority, assignee, created, updated)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?)
 	`,
 		t.ID,
 		t.Title,
 		t.Description,
 		string(t.Status),
 		t.Priority,
+		t.Assignee,
 		t.Created.Format(time.RFC3339Nano),
 		t.Updated.Format(time.RFC3339Nano),
 	)
@@ -217,13 +220,14 @@ func (db *DB) UpdateTicket(t *ticket.Ticket) error {
 
 	result, err := tx.Exec(`
 		UPDATE tickets
-		SET title = ?, description = ?, status = ?, priority = ?, updated = ?
+		SET title = ?, description = ?, status = ?, priority = ?, assignee = ?, updated = ?
 		WHERE id = ?
 	`,
 		t.Title,
 		t.Description,
 		string(t.Status),
 		t.Priority,
+		t.Assignee,
 		t.Updated.Format(time.RFC3339Nano),
 		t.ID,
 	)
@@ -262,12 +266,13 @@ func (db *DB) UpdateTicket(t *ticket.Ticket) error {
 func (db *DB) GetTicket(id string) (*ticket.Ticket, error) {
 	var t ticket.Ticket
 	var status string
+	var assignee sql.NullString
 	var created, updated string
 
 	err := db.conn.QueryRow(`
-		SELECT id, title, description, status, priority, created, updated
+		SELECT id, title, description, status, priority, assignee, created, updated
 		FROM tickets WHERE id = ?
-	`, id).Scan(&t.ID, &t.Title, &t.Description, &status, &t.Priority, &created, &updated)
+	`, id).Scan(&t.ID, &t.Title, &t.Description, &status, &t.Priority, &assignee, &created, &updated)
 
 	if err == sql.ErrNoRows {
 		return nil, nil
@@ -277,6 +282,9 @@ func (db *DB) GetTicket(id string) (*ticket.Ticket, error) {
 	}
 
 	t.Status = ticket.Status(status)
+	if assignee.Valid {
+		t.Assignee = assignee.String
+	}
 	t.Created, _ = time.Parse(time.RFC3339Nano, created)
 	t.Updated, _ = time.Parse(time.RFC3339Nano, updated)
 
@@ -321,13 +329,13 @@ func (db *DB) ListTickets(status *ticket.Status) ([]*ticket.Ticket, error) {
 
 	if status != nil {
 		rows, err = db.conn.Query(`
-			SELECT id, title, description, status, priority, created, updated
+			SELECT id, title, description, status, priority, assignee, created, updated
 			FROM tickets WHERE status = ?
 			ORDER BY priority ASC, created ASC
 		`, string(*status))
 	} else {
 		rows, err = db.conn.Query(`
-			SELECT id, title, description, status, priority, created, updated
+			SELECT id, title, description, status, priority, assignee, created, updated
 			FROM tickets
 			ORDER BY priority ASC, created ASC
 		`)
@@ -353,7 +361,7 @@ func (db *DB) ListTickets(status *ticket.Status) ([]*ticket.Ticket, error) {
 // ListReadyTickets retrieves open tickets that are not blocked by other open tickets.
 func (db *DB) ListReadyTickets() ([]*ticket.Ticket, error) {
 	rows, err := db.conn.Query(`
-		SELECT t.id, t.title, t.description, t.status, t.priority, t.created, t.updated
+		SELECT t.id, t.title, t.description, t.status, t.priority, t.assignee, t.created, t.updated
 		FROM tickets t
 		WHERE t.status = 'open'
 		AND NOT EXISTS (
@@ -390,7 +398,7 @@ func (db *DB) ListTicketsByLabel(label string, status *ticket.Status) ([]*ticket
 
 	if status != nil {
 		rows, err = db.conn.Query(`
-			SELECT t.id, t.title, t.description, t.status, t.priority, t.created, t.updated
+			SELECT t.id, t.title, t.description, t.status, t.priority, t.assignee, t.created, t.updated
 			FROM tickets t
 			JOIN ticket_labels tl ON t.id = tl.ticket_id
 			WHERE tl.label = ? AND t.status = ?
@@ -398,7 +406,7 @@ func (db *DB) ListTicketsByLabel(label string, status *ticket.Status) ([]*ticket
 		`, label, string(*status))
 	} else {
 		rows, err = db.conn.Query(`
-			SELECT t.id, t.title, t.description, t.status, t.priority, t.created, t.updated
+			SELECT t.id, t.title, t.description, t.status, t.priority, t.assignee, t.created, t.updated
 			FROM tickets t
 			JOIN ticket_labels tl ON t.id = tl.ticket_id
 			WHERE tl.label = ?
@@ -468,13 +476,17 @@ func scanTickets(rows *sql.Rows) ([]*ticket.Ticket, error) {
 	for rows.Next() {
 		var t ticket.Ticket
 		var statusStr string
+		var assignee sql.NullString
 		var created, updated string
 
-		if err := rows.Scan(&t.ID, &t.Title, &t.Description, &statusStr, &t.Priority, &created, &updated); err != nil {
+		if err := rows.Scan(&t.ID, &t.Title, &t.Description, &statusStr, &t.Priority, &assignee, &created, &updated); err != nil {
 			return nil, fmt.Errorf("scanning ticket: %w", err)
 		}
 
 		t.Status = ticket.Status(statusStr)
+		if assignee.Valid {
+			t.Assignee = assignee.String
+		}
 		createdTime, err := time.Parse(time.RFC3339Nano, created)
 		if err != nil {
 			return nil, fmt.Errorf("parsing ticket created time: %w", err)
@@ -616,8 +628,8 @@ func (db *DB) RebuildFromAll(tickets []*ticket.Ticket, comments []*ticket.Commen
 	}
 
 	ticketStmt, err := tx.Prepare(`
-		INSERT INTO tickets (id, title, description, status, priority, created, updated)
-		VALUES (?, ?, ?, ?, ?, ?, ?)
+		INSERT INTO tickets (id, title, description, status, priority, assignee, created, updated)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?)
 	`)
 	if err != nil {
 		return fmt.Errorf("preparing ticket insert: %w", err)
@@ -637,6 +649,7 @@ func (db *DB) RebuildFromAll(tickets []*ticket.Ticket, comments []*ticket.Commen
 			t.Description,
 			string(t.Status),
 			t.Priority,
+			t.Assignee,
 			t.Created.Format(time.RFC3339Nano),
 			t.Updated.Format(time.RFC3339Nano),
 		)

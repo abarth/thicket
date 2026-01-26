@@ -26,6 +26,7 @@ type Ticket struct {
 	Status      Status    `json:"status"`
 	Priority    int       `json:"priority"`
 	Labels      []string  `json:"labels,omitempty"`
+	Assignee    string    `json:"assignee,omitempty"`
 	Created     time.Time `json:"created"`
 	Updated     time.Time `json:"updated"`
 }
@@ -119,7 +120,7 @@ func ValidateLabels(labels []string) error {
 }
 
 // New creates a new ticket with the given parameters.
-func New(projectCode, title, description string, priority int, labels []string) (*Ticket, error) {
+func New(projectCode, title, description string, priority int, labels []string, assignee string) (*Ticket, error) {
 	id, err := GenerateID(projectCode)
 	if err != nil {
 		return nil, err
@@ -142,6 +143,7 @@ func New(projectCode, title, description string, priority int, labels []string) 
 		Status:      StatusOpen,
 		Priority:    priority,
 		Labels:      labels,
+		Assignee:    strings.TrimSpace(assignee),
 		Created:     now,
 		Updated:     now,
 	}, nil
@@ -168,7 +170,7 @@ func (t *Ticket) Close() {
 }
 
 // Update modifies the ticket fields and updates the timestamp.
-func (t *Ticket) Update(title, description *string, priority *int, status *Status, addLabels, removeLabels []string) error {
+func (t *Ticket) Update(title, description *string, priority *int, status *Status, addLabels, removeLabels []string, assignee *string) error {
 	if title != nil {
 		trimmed := strings.TrimSpace(*title)
 		if trimmed == "" {
@@ -220,6 +222,11 @@ func (t *Ticket) Update(title, description *string, priority *int, status *Statu
 			}
 		}
 		t.Labels = filtered
+	}
+
+	// Handle assignee update
+	if assignee != nil {
+		t.Assignee = strings.TrimSpace(*assignee)
 	}
 
 	t.Updated = time.Now().UTC()

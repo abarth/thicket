@@ -32,6 +32,7 @@ func Add(args []string) error {
 	title := fs.String("title", "", "Ticket title")
 	description := fs.String("description", "", "Ticket description")
 	priority := fs.Int("priority", 0, "Ticket priority (lower = higher priority)")
+	assignee := fs.String("assignee", "", "Assign ticket to person")
 	interactive := fs.Bool("interactive", false, "Interactive mode")
 	blocks := fs.String("blocks", "", "Existing ticket that is blocked by this new ticket")
 	blockedBy := fs.String("blocked-by", "", "Existing ticket that blocks this new ticket")
@@ -41,7 +42,7 @@ func Add(args []string) error {
 
 	fs.BoolVar(interactive, "i", false, "Interactive mode (shorthand)")
 	fs.Usage = func() {
-		fmt.Fprintln(os.Stderr, "Usage: thicket add [--interactive] [--title <TITLE>] [--description <DESC>] [--priority <N>] [--label <LABEL>]... [--blocks <ID>] [--blocked-by <ID>] [--created-from <ID>] [--json] [--data-dir <DIR>]")
+		fmt.Fprintln(os.Stderr, "Usage: thicket add [--interactive] [--title <TITLE>] [--description <DESC>] [--priority <N>] [--assignee <NAME>] [--label <LABEL>]... [--blocks <ID>] [--blocked-by <ID>] [--created-from <ID>] [--json] [--data-dir <DIR>]")
 		fmt.Fprintln(os.Stderr, "\nCreate a new ticket.")
 		fmt.Fprintln(os.Stderr, "\nFlags:")
 		fs.PrintDefaults()
@@ -116,7 +117,7 @@ func Add(args []string) error {
 	}
 	defer store.Close()
 
-	t, err := ticket.New(cfg.ProjectCode, *title, *description, *priority, labels)
+	t, err := ticket.New(cfg.ProjectCode, *title, *description, *priority, labels, *assignee)
 	if err != nil {
 		return err
 	}
