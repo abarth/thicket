@@ -261,6 +261,70 @@ func TestDB_ListTickets(t *testing.T) {
 	}
 }
 
+func TestDB_ListReadyTickets(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "test.db")
+
+	db, err := OpenDB(path)
+	if err != nil {
+		t.Fatalf("OpenDB() error = %v", err)
+	}
+	defer db.Close()
+
+	now := time.Now().UTC()
+	tickets := []*ticket.Ticket{
+		{ID: "TH-111111", Title: "Blocked by open", Status: ticket.StatusOpen, Priority: 1, Created: now, Updated: now},
+		{ID: "TH-222222", Title: "Open Blocker", Status: ticket.StatusOpen, Priority: 1, Created: now, Updated: now},
+		{ID: "TH-333333", Title: "Blocked by closed", Status: ticket.StatusOpen, Priority: 1, Created: now, Updated: now},
+		{ID: "TH-444444", Title: "Closed Blocker", Status: ticket.StatusClosed, Priority: 1, Created: now, Updated: now},
+		{ID: "TH-555555", Title: "Ready", Status: ticket.StatusOpen, Priority: 1, Created: now, Updated: now},
+	}
+
+	for _, tk := range tickets {
+		if err := db.InsertTicket(tk); err != nil {
+			t.Fatalf("InsertTicket() error = %v", err)
+		}
+	}
+
+	dependencies := []*ticket.Dependency{
+		{ID: "D1", FromTicketID: "TH-111111", ToTicketID: "TH-222222", Type: ticket.DependencyBlockedBy, Created: now},
+		{ID: "D2", FromTicketID: "TH-333333", ToTicketID: "TH-444444", Type: ticket.DependencyBlockedBy, Created: now},
+	}
+
+	for _, d := range dependencies {
+		if err := db.InsertDependency(d); err != nil {
+			t.Fatalf("InsertDependency() error = %v", err)
+		}
+	}
+
+	ready, err := db.ListReadyTickets()
+	if err != nil {
+		t.Fatalf("ListReadyTickets() error = %v", err)
+	}
+
+	// Ready tickets should be:
+	// - TH-222222 (Open Blocker, not blocked by anything)
+	// - TH-333333 (Blocked by closed blocker, so it's actionable/ready)
+	// - TH-555555 (Ready, not blocked by anything)
+	// TH-111111 is blocked by TH-222222 which is open.
+
+	if len(ready) != 3 {
+		t.Fatalf("ListReadyTickets() returned %d tickets, want 3", len(ready))
+	}
+
+	expectedIDs := map[string]bool{
+		"TH-222222": true,
+		"TH-333333": true,
+		"TH-555555": true,
+	}
+
+	for _, tk := range ready {
+		if !expectedIDs[tk.ID] {
+			t.Errorf("ListReadyTickets() returned unwanted ticket ID: %q", tk.ID)
+		}
+	}
+}
+
 func TestDB_RebuildFromTickets(t *testing.T) {
 	dir := t.TempDir()
 	path := filepath.Join(dir, "test.db")

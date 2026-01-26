@@ -9,7 +9,7 @@ This project uses **Thicket** to track work. Before starting any task, check the
 go build -o thicket ./cmd/thicket
 
 # See what needs to be done
-./thicket list --status open
+./thicket ready
 
 # Get detailed guidance
 ./thicket quickstart
@@ -19,7 +19,7 @@ go build -o thicket ./cmd/thicket
 
 ### At the Start of Each Session
 
-1. **Check open tickets**: Run `./thicket list --status open` to see current work items
+1. **Check open tickets**: Run `./thicket ready` to see actionable work items. Use `./thicket list --status open` for a full list.
 2. **Pick a ticket**: Choose the highest priority (lowest number) open ticket
 3. **Review the ticket**: Run `./thicket show --json <ID>` to understand the task
 

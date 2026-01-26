@@ -17,7 +17,7 @@ and we want to remember which ticket the agent was working on when it created th
 important kind of dependency is when a ticket is blocked by the completion of another ticket.
 
 We will need to enforce that we do not create circular blocking dependencies. An important query for the coding agents will be to get
-the list of unblocked tickets in priority order. These are the tickets that are currently actionable.
+the list of ready tickets in priority order. These are the tickets that are currently actionable.
 
 We will also need a way to add comments to issues so that we can track what we learn about tickets over time. To keep the
 `tickets.jsonl` file manageable and diff-friendly, comments will be stored in a separate lines in the `tickets.jsonl` file,

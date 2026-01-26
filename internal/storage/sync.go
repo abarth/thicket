@@ -137,6 +137,11 @@ func (s *Store) List(status *ticket.Status) ([]*ticket.Ticket, error) {
 	return s.db.ListTickets(status)
 }
 
+// ListReady retrieves open tickets that are not blocked by other open tickets.
+func (s *Store) ListReady() ([]*ticket.Ticket, error) {
+	return s.db.ListReadyTickets()
+}
+
 // AddComment creates a new comment and persists it to both JSONL and SQLite.
 func (s *Store) AddComment(c *ticket.Comment) error {
 	if err := AppendComment(s.paths.Tickets, c); err != nil {

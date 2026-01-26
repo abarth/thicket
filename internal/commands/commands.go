@@ -227,6 +227,54 @@ func List(args []string) error {
 	return nil
 }
 
+// Ready displays open tickets that are not blocked by other open tickets.
+func Ready(args []string) error {
+	fs := flag.NewFlagSet("ready", flag.ExitOnError)
+	jsonOutput := fs.Bool("json", false, "Output in JSON format")
+	fs.Usage = func() {
+		fmt.Fprintln(os.Stderr, "Usage: thicket ready [--json]")
+		fmt.Fprintln(os.Stderr, "\nList open tickets that are not blocked by other open tickets, ordered by priority.")
+		fmt.Fprintln(os.Stderr, "\nFlags:")
+		fs.PrintDefaults()
+	}
+
+	if err := fs.Parse(args); err != nil {
+		return err
+	}
+
+	root, err := config.FindRoot()
+	if err != nil {
+		return wrapConfigError(err)
+	}
+
+	paths := config.GetPaths(root)
+	store, err := storage.Open(paths)
+	if err != nil {
+		return err
+	}
+	defer store.Close()
+
+	tickets, err := store.ListReady()
+	if err != nil {
+		return err
+	}
+
+	if *jsonOutput {
+		if tickets == nil {
+			tickets = []*ticket.Ticket{}
+		}
+		return printJSON(tickets)
+	}
+
+	if len(tickets) == 0 {
+		fmt.Println("No ready tickets found.")
+		return nil
+	}
+
+	printTicketTable(os.Stdout, tickets)
+	return nil
+}
+
 func printTicketTable(w io.Writer, tickets []*ticket.Ticket) {
 	tw := tabwriter.NewWriter(w, 0, 0, 2, ' ', 0)
 	fmt.Fprintln(tw, "ID\tPRI\tSTATUS\tTITLE")
@@ -752,8 +800,8 @@ GETTING STARTED
 ---------------
 
 1. Check current tickets:
-   thicket list                    # Show all open tickets
-   thicket list --status open      # Show only open tickets
+   thicket ready                   # Show actionable (not blocked) open tickets
+   thicket list --status open      # Show all open tickets
 
 2. Pick a ticket to work on (lowest priority number = most important):
    thicket show --json TH-abc123   # View ticket details and comments

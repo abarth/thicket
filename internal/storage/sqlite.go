@@ -244,6 +244,34 @@ func (db *DB) ListTickets(status *ticket.Status) ([]*ticket.Ticket, error) {
 	}
 	defer rows.Close()
 
+	return scanTickets(rows)
+}
+
+// ListReadyTickets retrieves open tickets that are not blocked by other open tickets.
+func (db *DB) ListReadyTickets() ([]*ticket.Ticket, error) {
+	rows, err := db.conn.Query(`
+		SELECT t.id, t.title, t.description, t.status, t.priority, t.created, t.updated
+		FROM tickets t
+		WHERE t.status = 'open'
+		AND NOT EXISTS (
+			SELECT 1
+			FROM dependencies d
+			JOIN tickets bt ON d.to_ticket_id = bt.id
+			WHERE d.from_ticket_id = t.id
+			AND d.type = 'blocked_by'
+			AND bt.status = 'open'
+		)
+		ORDER BY t.priority ASC, t.created ASC
+	`)
+	if err != nil {
+		return nil, fmt.Errorf("querying ready tickets: %w", err)
+	}
+	defer rows.Close()
+
+	return scanTickets(rows)
+}
+
+func scanTickets(rows *sql.Rows) ([]*ticket.Ticket, error) {
 	var tickets []*ticket.Ticket
 	for rows.Next() {
 		var t ticket.Ticket

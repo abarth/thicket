@@ -32,6 +32,9 @@ thicket add --title "Fix login bug" --description "Users cannot log in" --priori
 # List open tickets
 thicket list --status open
 
+# List ready tickets (not blocked by other open tickets)
+thicket ready
+
 # Show a specific ticket
 thicket show TH-abc123
 
@@ -93,6 +96,14 @@ thicket list [--status <STATUS>]
 - `--status`: Filter by status (`open` or `closed`)
 
 **Alias:** `thicket ls`
+
+### `thicket ready`
+
+List open tickets that are not blocked by other open tickets. These are actionable work items.
+
+```bash
+thicket ready
+```
 
 ### `thicket show`
 
