@@ -65,5 +65,5 @@ func TUI(args []string) error {
 	}
 	defer store.Close()
 
-	return tui.Run(store, cfg)
+	return tui.Run(store, cfg, paths.Tickets)
 }

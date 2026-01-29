@@ -25,7 +25,7 @@ func Open(paths config.Paths) (*Store, error) {
 
 	store := &Store{db: db, paths: paths}
 
-	if err := store.syncFromJSONL(); err != nil {
+	if err := store.SyncFromJSONL(); err != nil {
 		db.Close()
 		return nil, err
 	}
@@ -38,8 +38,9 @@ func (s *Store) Close() error {
 	return s.db.Close()
 }
 
-// syncFromJSONL checks if the JSONL file has been modified and rebuilds the cache if needed.
-func (s *Store) syncFromJSONL() error {
+// SyncFromJSONL checks if the JSONL file has been modified and rebuilds the cache if needed.
+// This is useful when external processes modify the tickets file.
+func (s *Store) SyncFromJSONL() error {
 	currentModTime, err := GetJSONLModTime(s.paths.Tickets)
 	if err != nil {
 		return fmt.Errorf("getting JSONL mod time: %w", err)

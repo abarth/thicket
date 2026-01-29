@@ -3,6 +3,7 @@ package tui
 import (
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/charmbracelet/bubbles/key"
 	tea "github.com/charmbracelet/bubbletea"
@@ -45,24 +46,46 @@ type Model struct {
 
 	// Help visibility
 	showHelp bool
+
+	// File watching
+	ticketsPath    string
+	watcherChan    chan FileChangedMsg
+	watcherCleanup func()
 }
 
 // New creates a new TUI model.
-func New(store *storage.Store, cfg *config.Config) Model {
+func New(store *storage.Store, cfg *config.Config, ticketsPath string) Model {
+	// Set up file watcher with 100ms debounce
+	watchChan, cleanup := WatchFile(ticketsPath, 100*time.Millisecond)()
+
 	return Model{
-		view:   viewList,
-		list:   NewListModel(store),
-		detail: NewDetailModel(store),
-		form:   NewFormModel(store, cfg.ProjectCode, nil),
-		store:  store,
-		config: cfg,
-		keys:   DefaultKeyMap(),
+		view:           viewList,
+		list:           NewListModel(store),
+		detail:         NewDetailModel(store),
+		form:           NewFormModel(store, cfg.ProjectCode, nil),
+		store:          store,
+		config:         cfg,
+		keys:           DefaultKeyMap(),
+		ticketsPath:    ticketsPath,
+		watcherChan:    watchChan,
+		watcherCleanup: cleanup,
 	}
 }
 
 // Init implements tea.Model.
 func (m Model) Init() tea.Cmd {
-	return m.list.Init()
+	return tea.Batch(m.list.Init(), m.waitForFileChange())
+}
+
+// waitForFileChange returns a command that waits for file change notifications.
+func (m Model) waitForFileChange() tea.Cmd {
+	return func() tea.Msg {
+		_, ok := <-m.watcherChan
+		if !ok {
+			return nil // Channel closed, stop watching
+		}
+		return FileChangedMsg{}
+	}
 }
 
 // Update implements tea.Model.
@@ -133,6 +156,15 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case RefreshListMsg:
 		return m, m.list.Refresh()
+
+	case FileChangedMsg:
+		// File changed externally, sync from JSONL and refresh
+		if err := m.store.SyncFromJSONL(); err != nil {
+			m.statusMsg = fmt.Sprintf("Sync error: %v", err)
+			m.statusError = true
+		}
+		// Continue watching for more changes
+		return m, tea.Batch(m.list.Refresh(), m.waitForFileChange())
 
 	case StatusMsg:
 		m.statusMsg = msg.Message
@@ -248,10 +280,14 @@ func (m Model) renderHelpBar() string {
 }
 
 // Run starts the TUI application.
-func Run(store *storage.Store, cfg *config.Config) error {
-	model := New(store, cfg)
+func Run(store *storage.Store, cfg *config.Config, ticketsPath string) error {
+	model := New(store, cfg, ticketsPath)
 	p := tea.NewProgram(model, tea.WithAltScreen())
 	_, err := p.Run()
+	// Clean up the file watcher
+	if model.watcherCleanup != nil {
+		model.watcherCleanup()
+	}
 	return err
 }
 
