@@ -47,6 +47,7 @@ var (
 	ErrInvalidID          = errors.New("invalid ticket ID format")
 	ErrEmptyTitle         = errors.New("ticket title cannot be empty")
 	ErrInvalidStatus      = errors.New("invalid ticket status")
+	ErrInvalidType        = errors.New("invalid ticket type")
 	ErrInvalidProjectCode = errors.New("project code must be exactly two uppercase letters")
 	ErrInvalidLabel       = errors.New("label must be 1-30 alphanumeric characters, hyphens, or underscores")
 )
@@ -113,6 +114,20 @@ func ValidateStatus(s Status) error {
 	}
 }
 
+// ValidateType checks if a type value is valid.
+// An empty type is allowed for tickets where type is not specified.
+func ValidateType(t Type) error {
+	if t == "" {
+		return nil
+	}
+	switch t {
+	case TypeBug, TypeFeature, TypeTask, TypeEpic, TypeCleanup:
+		return nil
+	default:
+		return ErrInvalidType
+	}
+}
+
 // ValidateLabel checks if a label is valid.
 func ValidateLabel(label string) error {
 	if !labelPattern.MatchString(label) {
@@ -148,6 +163,10 @@ func New(projectCode, title, description string, issueType Type, priority int, l
 		return nil, err
 	}
 
+	if err := ValidateType(issueType); err != nil {
+		return nil, err
+	}
+
 	now := time.Now().UTC()
 	return &Ticket{
 		ID:          id,
@@ -174,6 +193,9 @@ func (t *Ticket) Validate() error {
 	if err := ValidateStatus(t.Status); err != nil {
 		return err
 	}
+	if err := ValidateType(t.Type); err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -196,6 +218,9 @@ func (t *Ticket) Update(title, description *string, issueType *Type, priority *i
 		t.Description = strings.TrimSpace(*description)
 	}
 	if issueType != nil {
+		if err := ValidateType(*issueType); err != nil {
+			return err
+		}
 		t.Type = *issueType
 	}
 	if priority != nil {

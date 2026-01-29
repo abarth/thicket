@@ -125,6 +125,32 @@ func TestValidateStatus(t *testing.T) {
 	}
 }
 
+func TestValidateType(t *testing.T) {
+	tests := []struct {
+		ticketType Type
+		wantErr    bool
+	}{
+		{TypeBug, false},
+		{TypeFeature, false},
+		{TypeTask, false},
+		{TypeEpic, false},
+		{TypeCleanup, false},
+		{"", false}, // Empty type is allowed
+		{"custom", true},
+		{"BUG", true},
+		{"invalid", true},
+	}
+
+	for _, tt := range tests {
+		t.Run(string(tt.ticketType), func(t *testing.T) {
+			err := ValidateType(tt.ticketType)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("ValidateType(%q) error = %v, wantErr %v", tt.ticketType, err, tt.wantErr)
+			}
+		})
+	}
+}
+
 func TestNew(t *testing.T) {
 	ticket, err := New("TH", "Test ticket", "A description", TypeTask, 1, nil, "")
 	if err != nil {
@@ -209,6 +235,12 @@ func TestTicket_Validate(t *testing.T) {
 	ticket.Status = "invalid"
 	if err := ticket.Validate(); err == nil {
 		t.Error("Validate() expected error for invalid status")
+	}
+
+	ticket.Status = StatusOpen
+	ticket.Type = "invalid"
+	if err := ticket.Validate(); err == nil {
+		t.Error("Validate() expected error for invalid type")
 	}
 }
 
@@ -314,7 +346,7 @@ func TestTicket_Update_InvalidStatus(t *testing.T) {
 
 func TestNew_Types(t *testing.T) {
 	tests := []struct {
-		name     string
+		name       string
 		ticketType Type
 	}{
 		{"bug", TypeBug},
@@ -322,7 +354,7 @@ func TestNew_Types(t *testing.T) {
 		{"task", TypeTask},
 		{"epic", TypeEpic},
 		{"cleanup", TypeCleanup},
-		{"custom", Type("custom")},
+		{"empty", Type("")},
 	}
 
 	for _, tt := range tests {
@@ -338,6 +370,13 @@ func TestNew_Types(t *testing.T) {
 	}
 }
 
+func TestNew_InvalidType(t *testing.T) {
+	_, err := New("TH", "Title", "", Type("custom"), 1, nil, "")
+	if err != ErrInvalidType {
+		t.Errorf("New() error = %v, want ErrInvalidType", err)
+	}
+}
+
 func TestUpdate_Type(t *testing.T) {
 	tk, _ := New("TH", "Title", "", TypeTask, 1, nil, "")
 	newType := TypeBug
@@ -347,6 +386,15 @@ func TestUpdate_Type(t *testing.T) {
 	}
 	if tk.Type != TypeBug {
 		t.Errorf("ticket.Type = %q, want %q", tk.Type, TypeBug)
+	}
+}
+
+func TestUpdate_InvalidType(t *testing.T) {
+	tk, _ := New("TH", "Title", "", TypeTask, 1, nil, "")
+	invalidType := Type("custom")
+	err := tk.Update(nil, nil, &invalidType, nil, nil, nil, nil, nil)
+	if err != ErrInvalidType {
+		t.Errorf("Update() error = %v, want ErrInvalidType", err)
 	}
 }
 
