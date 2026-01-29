@@ -28,7 +28,7 @@ func TUI(args []string) error {
 		fmt.Fprintln(os.Stderr, "    c             Close selected ticket")
 		fmt.Fprintln(os.Stderr, "    +/=           Lower priority (increment priority value)")
 		fmt.Fprintln(os.Stderr, "    -/_           Higher priority (decrement priority value)")
-		fmt.Fprintln(os.Stderr, "    o/x/a         Filter: open/closed/all")
+		fmt.Fprintln(os.Stderr, "    o/x/i/a       Filter: open/closed/icebox/all")
 		fmt.Fprintln(os.Stderr, "    r             Refresh list")
 		fmt.Fprintln(os.Stderr, "    q             Quit")
 		fmt.Fprintln(os.Stderr, "    ?             Show help")

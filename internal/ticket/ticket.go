@@ -16,6 +16,7 @@ type Status string
 const (
 	StatusOpen   Status = "open"
 	StatusClosed Status = "closed"
+	StatusIcebox Status = "icebox"
 )
 
 // Type represents the category of a ticket.
@@ -107,7 +108,7 @@ func ParseProjectCode(id string) (string, error) {
 // ValidateStatus checks if a status value is valid.
 func ValidateStatus(s Status) error {
 	switch s {
-	case StatusOpen, StatusClosed:
+	case StatusOpen, StatusClosed, StatusIcebox:
 		return nil
 	default:
 		return ErrInvalidStatus

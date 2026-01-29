@@ -151,6 +151,12 @@ func (m ListModel) Update(msg tea.Msg) (ListModel, tea.Cmd) {
 			m.cursor = 0
 			m.offset = 0
 			return m, m.loadTickets()
+		case key.Matches(msg, m.keys.FilterIcebox):
+			status := ticket.StatusIcebox
+			m.filters.Status = &status
+			m.cursor = 0
+			m.offset = 0
+			return m, m.loadTickets()
 		case key.Matches(msg, m.keys.FilterAll):
 			m.filters.Status = nil
 			m.cursor = 0

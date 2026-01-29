@@ -40,7 +40,7 @@ thicket tui
 - **Navigation**: Use arrow keys or `j`/`k` to move through the list.
 - **Creation**: Press `n` to create a new ticket.
 - **Management**: Press `e` to edit, `c` to close, or `m` to add a comment (in detail view).
-- **Filtering**: Use `o`, `x`, or `a` to filter by open, closed, or all tickets.
+- **Filtering**: Use `o`, `x`, `i`, or `a` to filter by open, closed, icebox, or all tickets.
 
 ### CLI Usage
 

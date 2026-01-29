@@ -15,11 +15,11 @@ type KeyMap struct {
 	Bottom key.Binding
 
 	// Actions
-	Enter  key.Binding
-	Back   key.Binding
-	New    key.Binding
-	Edit   key.Binding
-	Close  key.Binding
+	Enter   key.Binding
+	Back    key.Binding
+	New     key.Binding
+	Edit    key.Binding
+	Close   key.Binding
 	Comment key.Binding
 	Refresh key.Binding
 
@@ -30,6 +30,7 @@ type KeyMap struct {
 	// Filtering
 	FilterOpen   key.Binding
 	FilterClosed key.Binding
+	FilterIcebox key.Binding
 	FilterAll    key.Binding
 
 	// Form navigation
@@ -110,6 +111,10 @@ func DefaultKeyMap() KeyMap {
 			key.WithKeys("x"),
 			key.WithHelp("x", "closed only"),
 		),
+		FilterIcebox: key.NewBinding(
+			key.WithKeys("i"),
+			key.WithHelp("i", "icebox only"),
+		),
 		FilterAll: key.NewBinding(
 			key.WithKeys("a"),
 			key.WithHelp("a", "show all"),
@@ -141,7 +146,7 @@ func ListHelp() string {
 		helpKeyStyle.Render("e") + helpStyle.Render(" edit  ") +
 		helpKeyStyle.Render("c") + helpStyle.Render(" close  ") +
 		helpKeyStyle.Render("+/-") + helpStyle.Render(" priority  ") +
-		helpKeyStyle.Render("o/x/a") + helpStyle.Render(" filter  ") +
+		helpKeyStyle.Render("o/x/i/a") + helpStyle.Render(" filter  ") +
 		helpKeyStyle.Render("q") + helpStyle.Render(" quit")
 }
 

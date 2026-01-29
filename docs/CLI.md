@@ -38,7 +38,7 @@ thicket tui
 | `c` | Close selected ticket |
 | `+`/`=` | Lower priority (increment priority value) |
 | `-`/`_` | Higher priority (decrement priority value) |
-| `o`/`x`/`a` | Filter: open/closed/all |
+| `o`/`x`/`i`/`a` | Filter: open/closed/icebox/all |
 | `r` | Refresh list |
 | **Detail View** | |
 | `Esc`, `h`, `Backspace` | Back to list |
@@ -98,7 +98,7 @@ thicket list [--status <STATUS>] [--label <LABEL>]
 ```
 
 **Flags:**
-- `--status`: Filter by status (`open` or `closed`)
+- `--status`: Filter by status (`open`, `closed`, or `icebox`)
 - `--label`: Filter by label
 
 **Alias:** `thicket ls`
@@ -191,7 +191,7 @@ thicket update [flags] <TICKET-ID>
 - `--description`: New description
 - `--type`: New type (e.g., bug, feature, task, epic, cleanup)
 - `--priority`: New priority
-- `--status`: New status (`open` or `closed`)
+- `--status`: New status (`open`, `closed`, or `icebox`)
 - `--assignee`: Assign ticket to person (use empty string to clear)
 - `--add-label`: Add a label (can be specified multiple times)
 - `--remove-label`: Remove a label (can be specified multiple times)
