@@ -71,6 +71,8 @@ func run() error {
 		return commands.Link(remainingArgs)
 	case "quickstart":
 		return commands.Quickstart(remainingArgs)
+	case "tui":
+		return commands.TUI(remainingArgs)
 	case "help", "-h", "--help":
 		printUsage()
 		return nil
@@ -106,6 +108,7 @@ Commands:
   comment     Add a comment to a ticket
   link        Create dependencies between tickets
   quickstart  Show guide for coding agents
+  tui         Launch interactive terminal UI
   help        Show this help message
   version     Show version information
 
