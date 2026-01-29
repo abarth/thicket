@@ -148,16 +148,42 @@ func (m ListModel) Update(msg tea.Msg) (ListModel, tea.Cmd) {
 			m.err = msg.Err
 			return m, nil
 		}
+
+		// Remember selected ticket ID to maintain selection after refresh
+		var selectedID string
+		if m.cursor >= 0 && m.cursor < len(m.tickets) {
+			selectedID = m.tickets[m.cursor].ID
+		}
+
 		m.allTickets = msg.Tickets
 		m.applyFilters()
 		m.err = nil
-		// Reset cursor if out of bounds
+
+		// Try to find the previously selected ticket in the new list
+		if selectedID != "" {
+			found := -1
+			for i, t := range m.tickets {
+				if t.ID == selectedID {
+					found = i
+					break
+				}
+			}
+
+			if found != -1 {
+				m.cursor = found
+				m.ensureVisible()
+				return m, nil
+			}
+		}
+
+		// Fallback: reset cursor if out of bounds
 		if m.cursor >= len(m.tickets) {
 			m.cursor = len(m.tickets) - 1
 		}
 		if m.cursor < 0 {
 			m.cursor = 0
 		}
+		m.ensureVisible()
 		return m, nil
 
 	case tea.KeyMsg:
