@@ -9,6 +9,7 @@ import (
 	"github.com/charmbracelet/bubbles/textarea"
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/charmbracelet/lipgloss"
 
 	"github.com/abarth/thicket/internal/storage"
 	"github.com/abarth/thicket/internal/ticket"
@@ -416,7 +417,7 @@ func (m FormModel) renderField(label string, input textinput.Model, field formFi
 		inputView += "  " + errorMsgStyle.Render(err)
 	}
 
-	return labelText + " " + inputView
+	return lipgloss.JoinHorizontal(lipgloss.Top, labelText, " ", inputView)
 }
 
 func (m FormModel) renderTextArea(label string, input textarea.Model, field formField) string {
@@ -430,5 +431,5 @@ func (m FormModel) renderTextArea(label string, input textarea.Model, field form
 		inputView += "  " + errorMsgStyle.Render(err)
 	}
 
-	return labelText + " " + inputView
+	return lipgloss.JoinHorizontal(lipgloss.Top, labelText, " ", inputView)
 }
