@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/charmbracelet/bubbles/key"
+	"github.com/charmbracelet/bubbles/textarea"
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
 
@@ -48,7 +49,7 @@ type FormModel struct {
 
 	// Form inputs
 	title       textinput.Model
-	description textinput.Model
+	description textarea.Model
 	ticketType  textinput.Model
 	priority    textinput.Model
 	assignee    textinput.Model
@@ -78,10 +79,11 @@ func NewFormModel(store *storage.Store, projectCode string, t *ticket.Ticket) Fo
 	m.title.CharLimit = 200
 	m.title.Width = 50
 
-	m.description = textinput.New()
+	m.description = textarea.New()
 	m.description.Placeholder = "Description (optional)"
-	m.description.CharLimit = 1000
-	m.description.Width = 50
+	m.description.SetWidth(50)
+	m.description.SetHeight(5)
+	m.description.ShowLineNumbers = false
 
 	m.ticketType = textinput.New()
 	m.ticketType.Placeholder = "bug, feature, task, epic, cleanup"
@@ -141,7 +143,7 @@ func (m *FormModel) SetSize(width, height int) {
 		inputWidth = 60
 	}
 	m.title.Width = inputWidth
-	m.description.Width = inputWidth
+	m.description.SetWidth(inputWidth)
 	m.labels.Width = inputWidth
 }
 
@@ -365,7 +367,7 @@ func (m FormModel) View() string {
 	// Render each field
 	b.WriteString(m.renderField("Title", m.title, fieldTitle))
 	b.WriteString("\n")
-	b.WriteString(m.renderField("Description", m.description, fieldDescription))
+	b.WriteString(m.renderTextArea("Description", m.description, fieldDescription))
 	b.WriteString("\n")
 	b.WriteString(m.renderField("Type", m.ticketType, fieldType))
 	b.WriteString("\n")
@@ -404,6 +406,20 @@ func (m FormModel) isDirty() bool {
 }
 
 func (m FormModel) renderField(label string, input textinput.Model, field formField) string {
+	style := labelStyle.Copy().Width(14)
+	labelText := style.Render(label + ":")
+
+	inputView := input.View()
+
+	// Show error if any
+	if err, ok := m.errors[field]; ok {
+		inputView += "  " + errorMsgStyle.Render(err)
+	}
+
+	return labelText + " " + inputView
+}
+
+func (m FormModel) renderTextArea(label string, input textarea.Model, field formField) string {
 	style := labelStyle.Copy().Width(14)
 	labelText := style.Render(label + ":")
 
