@@ -151,6 +151,18 @@ func (m ListModel) Update(msg tea.Msg) (ListModel, tea.Cmd) {
 			m.cursor = 0
 			m.offset = 0
 			return m, m.loadTickets()
+		case key.Matches(msg, m.keys.PriorityUp):
+			if len(m.tickets) > 0 && m.cursor < len(m.tickets) {
+				t := m.tickets[m.cursor]
+				return m, m.updatePriority(t.ID, t.Priority+1)
+			}
+		case key.Matches(msg, m.keys.PriorityDown):
+			if len(m.tickets) > 0 && m.cursor < len(m.tickets) {
+				t := m.tickets[m.cursor]
+				if t.Priority > 1 {
+					return m, m.updatePriority(t.ID, t.Priority-1)
+				}
+			}
 		}
 	}
 
@@ -168,6 +180,20 @@ func (m ListModel) closeTicket(id string) tea.Cmd {
 			return ErrorMsg{Err: err}
 		}
 		return TicketClosedMsg{ID: id}
+	}
+}
+
+func (m ListModel) updatePriority(id string, newPriority int) tea.Cmd {
+	return func() tea.Msg {
+		t, err := m.store.Get(id)
+		if err != nil {
+			return ErrorMsg{Err: err}
+		}
+		t.Priority = newPriority
+		if err := m.store.Update(t); err != nil {
+			return ErrorMsg{Err: err}
+		}
+		return TicketPriorityUpdatedMsg{ID: id, NewPriority: newPriority}
 	}
 }
 

@@ -30,6 +30,12 @@ type TicketClosedMsg struct {
 	ID string
 }
 
+// TicketPriorityUpdatedMsg is sent after a ticket's priority has been updated.
+type TicketPriorityUpdatedMsg struct {
+	ID          string
+	NewPriority int
+}
+
 // RefreshListMsg is sent to refresh the ticket list.
 type RefreshListMsg struct{}
 

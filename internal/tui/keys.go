@@ -23,6 +23,10 @@ type KeyMap struct {
 	Comment key.Binding
 	Refresh key.Binding
 
+	// Priority
+	PriorityUp   key.Binding
+	PriorityDown key.Binding
+
 	// Filtering
 	FilterOpen   key.Binding
 	FilterClosed key.Binding
@@ -90,6 +94,14 @@ func DefaultKeyMap() KeyMap {
 			key.WithKeys("r"),
 			key.WithHelp("r", "refresh"),
 		),
+		PriorityUp: key.NewBinding(
+			key.WithKeys("+", "="),
+			key.WithHelp("+", "lower priority"),
+		),
+		PriorityDown: key.NewBinding(
+			key.WithKeys("-", "_"),
+			key.WithHelp("-", "higher priority"),
+		),
 		FilterOpen: key.NewBinding(
 			key.WithKeys("o"),
 			key.WithHelp("o", "open only"),
@@ -128,6 +140,7 @@ func ListHelp() string {
 		helpKeyStyle.Render("n") + helpStyle.Render(" new  ") +
 		helpKeyStyle.Render("e") + helpStyle.Render(" edit  ") +
 		helpKeyStyle.Render("c") + helpStyle.Render(" close  ") +
+		helpKeyStyle.Render("+/-") + helpStyle.Render(" priority  ") +
 		helpKeyStyle.Render("o/x/a") + helpStyle.Render(" filter  ") +
 		helpKeyStyle.Render("q") + helpStyle.Render(" quit")
 }
