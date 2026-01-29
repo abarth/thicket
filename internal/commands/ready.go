@@ -6,15 +6,14 @@ import (
 
 	"github.com/abarth/thicket/internal/config"
 	"github.com/abarth/thicket/internal/storage"
-	"github.com/abarth/thicket/internal/ticket"
 )
 
-// Ready displays open tickets that are not blocked by other open tickets.
+// Ready displays the highest priority open ticket that is not blocked by other open tickets.
 func Ready(args []string) error {
 	fs, jsonOutput, dataDir := newFlagSet("ready")
 	fs.Usage = func() {
 		fmt.Fprintln(os.Stderr, "Usage: thicket ready [--json] [--data-dir <DIR>]")
-		fmt.Fprintln(os.Stderr, "\nList actionable open tickets (not blocked by others).")
+		fmt.Fprintln(os.Stderr, "\nShow the highest priority actionable ticket (not blocked by others).")
 		fmt.Fprintln(os.Stderr, "\nFlags:")
 		fs.PrintDefaults()
 	}
@@ -42,18 +41,53 @@ func Ready(args []string) error {
 		return err
 	}
 
-	if *jsonOutput {
-		if tickets == nil {
-			tickets = []*ticket.Ticket{}
-		}
-		return printJSON(tickets)
-	}
-
 	if len(tickets) == 0 {
+		if *jsonOutput {
+			return printJSON(map[string]interface{}{
+				"message": "No ready tickets found",
+				"ticket":  nil,
+			})
+		}
 		fmt.Println("No ready tickets found.")
 		return nil
 	}
 
-	printTicketTable(os.Stdout, tickets)
+	// Get the highest priority ticket (first in the sorted list)
+	t := tickets[0]
+
+	// Get full ticket details
+	comments, err := store.GetComments(t.ID)
+	if err != nil {
+		return err
+	}
+
+	blockedBy, err := store.GetBlockers(t.ID)
+	if err != nil {
+		return err
+	}
+
+	blocking, err := store.GetBlocking(t.ID)
+	if err != nil {
+		return err
+	}
+
+	createdFrom, err := store.GetCreatedFrom(t.ID)
+	if err != nil {
+		return err
+	}
+
+	details := &TicketDetails{
+		Ticket:      t,
+		Comments:    comments,
+		BlockedBy:   blockedBy,
+		Blocking:    blocking,
+		CreatedFrom: createdFrom,
+	}
+
+	if *jsonOutput {
+		return printJSON(details)
+	}
+
+	printTicketDetail(os.Stdout, details)
 	return nil
 }

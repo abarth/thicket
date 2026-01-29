@@ -72,11 +72,13 @@ thicket list --status open --label bug
 
 ### `thicket ready`
 
-List open tickets that are not blocked by other open tickets. These are actionable work items.
+Show the highest priority open ticket that is not blocked by other open tickets. Displays full ticket details including comments and relationships.
 
 ```bash
 thicket ready
 ```
+
+This is the recommended command to find what to work on next. It shows the single most important actionable item with all the context needed to start working.
 
 ### `thicket show`
 

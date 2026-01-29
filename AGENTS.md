@@ -21,9 +21,7 @@ go build -o thicket ./cmd/thicket
 
 ### At the Start of Each Session
 
-1. **Check open tickets**: Run `./thicket ready` to see actionable work items.
-2. **Pick a ticket**: Choose the highest priority (lowest number) open ticket.
-3. **Review the ticket**: Run `./thicket show --json <ID>` to understand the task
+1. **Get the next ticket**: Run `./thicket ready` to see the highest priority actionable ticket with full details.
 
 ### While Working
 

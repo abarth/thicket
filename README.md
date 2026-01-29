@@ -29,7 +29,7 @@ thicket init --project TH
 # Create a ticket with labels
 thicket add --title "Fix login bug" --type bug --priority 1 --label security
 
-# List ready tickets (not blocked by other open tickets)
+# Show the next ticket to work on (highest priority, not blocked)
 thicket ready
 
 # Show a specific ticket

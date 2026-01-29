@@ -101,7 +101,7 @@ Commands:
   init        Initialize a new Thicket project
   add         Create a new ticket
   list        List tickets (alias: ls)
-  ready       List actionable open tickets
+  ready       Show next actionable ticket
   show        Display a ticket
   update      Modify a ticket
   close       Close a ticket

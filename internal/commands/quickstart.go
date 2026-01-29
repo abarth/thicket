@@ -12,23 +12,20 @@ Coding agents should use the --json flag for machine-readable output.
 
 ## WORKFLOW
 
-1. Find a ticket to work on:
+1. Get the next ticket to work on (shows full details):
    thicket ready
 
-2. Learn about the ticket and its context:
-   thicket show --json TH-abc123
-
-3. As you work on tickets, find additional work and create new tickets:
+2. As you work on tickets, find additional work and create new tickets:
    thicket add --json --title "Refactor later" --description "Details here" --created-from TH-abc123
 
-4. Add comments to track progress:
+3. Add comments to track progress:
    thicket comment --json TH-abc123 "Found root cause in auth.go:142"
    thicket comment --json TH-abc123 "Fix implemented, tests passing"
 
-5. Close tickets when completed:
+4. Close tickets when completed:
    thicket close --json TH-abc123
 
-6. Think about what additional work should be done and then file tickets for
+5. Think about what additional work should be done and then file tickets for
    that work.
 
 ## Priority guidelines:
