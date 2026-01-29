@@ -35,4 +35,6 @@ Follow these steps to work on Thicket using its own issue tracking system.
    ./thicket add --title "Brief descriptive title" --description "Detailed context" --created-from <CURRENT_TICKET_ID>
    ```
 
+7. Commit your changes using git.
+
 **CRITICAL**: NEVER edit `.thicket/tickets.jsonl` directly. Always use the `./thicket` CLI.
