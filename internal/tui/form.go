@@ -56,6 +56,10 @@ type FormModel struct {
 
 	// Validation errors
 	errors map[formField]string
+
+	// Confirmation
+	initialValues     map[formField]string
+	confirmingDiscard bool
 }
 
 // NewFormModel creates a new form model.
@@ -113,6 +117,9 @@ func NewFormModel(store *storage.Store, projectCode string, t *ticket.Ticket) Fo
 		m.priority.SetValue("2")
 		m.ticketType.SetValue("task")
 	}
+
+	// Store initial values for dirty check
+	m.initialValues = m.getValues()
 
 	// Focus first field
 	m.focusField(fieldTitle)
@@ -186,10 +193,29 @@ func (m *FormModel) prevField() {
 func (m FormModel) Update(msg tea.Msg) (FormModel, tea.Cmd) {
 	var cmds []tea.Cmd
 
+	if m.confirmingDiscard {
+		if msg, ok := msg.(tea.KeyMsg); ok {
+			switch msg.String() {
+			case "y", "Y":
+				return m, func() tea.Msg {
+					return BackToListMsg{}
+				}
+			default:
+				m.confirmingDiscard = false
+				return m, nil
+			}
+		}
+		return m, nil
+	}
+
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
 		switch {
 		case key.Matches(msg, m.keys.Cancel):
+			if m.isDirty() {
+				m.confirmingDiscard = true
+				return m, nil
+			}
 			return m, func() tea.Msg {
 				return BackToListMsg{}
 			}
@@ -349,7 +375,32 @@ func (m FormModel) View() string {
 	b.WriteString("\n")
 	b.WriteString(m.renderField("Labels", m.labels, fieldLabels))
 
+	if m.confirmingDiscard {
+		b.WriteString("\n\n  " + errorMsgStyle.Render("Discard changes? (y/n)"))
+	}
+
 	return b.String()
+}
+
+func (m FormModel) getValues() map[formField]string {
+	return map[formField]string{
+		fieldTitle:       m.title.Value(),
+		fieldDescription: m.description.Value(),
+		fieldType:        m.ticketType.Value(),
+		fieldPriority:    m.priority.Value(),
+		fieldAssignee:    m.assignee.Value(),
+		fieldLabels:      m.labels.Value(),
+	}
+}
+
+func (m FormModel) isDirty() bool {
+	current := m.getValues()
+	for f, val := range m.initialValues {
+		if current[f] != val {
+			return true
+		}
+	}
+	return false
 }
 
 func (m FormModel) renderField(label string, input textinput.Model, field formField) string {
