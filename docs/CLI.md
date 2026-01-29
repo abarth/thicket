@@ -13,6 +13,40 @@ These flags can be used with almost all commands. They can be placed before or a
 - `THICKET_DIR`: Specify a custom `.thicket` directory location. The `--data-dir` flag takes precedence over this environment variable.
 ## Commands
 
+### `thicket tui`
+
+Launch the interactive terminal UI for managing tickets. This is the recommended interface for human users.
+
+```bash
+thicket tui
+```
+
+**Keybindings:**
+
+| Key | Action |
+|-----|--------|
+| **Global** | |
+| `q` | Quit |
+| **List View** | |
+| `j`/`k`, `Arrows` | Navigate up/down |
+| `Enter` | View ticket details |
+| `n` | Create new ticket |
+| `e` | Edit selected ticket |
+| `c` | Close selected ticket |
+| `o`/`x`/`a` | Filter: open/closed/all |
+| `r` | Refresh list |
+| **Detail View** | |
+| `Esc` | Back to list |
+| `e` | Edit ticket |
+| `c` | Close ticket |
+| `m` | Add comment |
+| `j`/`k` | Scroll |
+| **Form View** | |
+| `Tab` | Next field |
+| `Shift+Tab` | Previous field |
+| `Ctrl+S` | Save |
+| `Esc` | Cancel |
+
 ### `thicket init`
 
 Initialize a new Thicket project in the current directory.

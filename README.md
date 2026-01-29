@@ -22,27 +22,42 @@ go build -o thicket ./cmd/thicket
 
 ## Quick Start
 
+### 1. Initialize your project
+
 ```bash
-# Initialize Thicket in your project
 thicket init --project TH
-
-# Create a ticket with labels
-thicket add --title "Fix login bug" --type bug --priority 1 --label security
-
-# Show the next ticket to work on (highest priority, not blocked)
-thicket ready
-
-# Show a specific ticket
-thicket show TH-abc123
-
-# Add a comment to track progress
-thicket comment TH-abc123 "Found the root cause"
-
-# Close a ticket
-thicket close TH-abc123
 ```
 
-All commands support `--json` for machine-readable output.
+### 2. Launch the TUI
+
+The Terminal UI is the recommended interface for human users. It provides an interactive way to browse, create, and manage tickets.
+
+```bash
+thicket tui
+```
+
+**Key Features:**
+- **Navigation**: Use arrow keys or `j`/`k` to move through the list.
+- **Creation**: Press `n` to create a new ticket.
+- **Management**: Press `e` to edit, `c` to close, or `m` to add a comment (in detail view).
+- **Filtering**: Use `o`, `x`, or `a` to filter by open, closed, or all tickets.
+
+### CLI Usage
+
+For automation or quick commands, Thicket provides a robust CLI.
+
+```bash
+# Show the next actionable ticket (most important for agents)
+thicket ready
+
+# Add a ticket
+thicket add --title "Fix login bug" --type bug --priority 1
+
+# List open tickets
+thicket list --status open
+```
+
+All commands support `--json` for machine-readable output. For the full CLI reference, see [docs/CLI.md](docs/CLI.md).
 
 ## Project Structure
 
