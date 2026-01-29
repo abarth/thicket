@@ -21,9 +21,8 @@ type KeyMap struct {
 	Edit    key.Binding
 	Close   key.Binding
 	Comment key.Binding
+	Search  key.Binding
 	Refresh key.Binding
-
-	// Priority
 	PriorityUp   key.Binding
 	PriorityDown key.Binding
 
@@ -97,6 +96,10 @@ func DefaultKeyMap() KeyMap {
 		Comment: key.NewBinding(
 			key.WithKeys("m"),
 			key.WithHelp("m", "comment"),
+		),
+		Search: key.NewBinding(
+			key.WithKeys("/"),
+			key.WithHelp("/", "search"),
 		),
 		Refresh: key.NewBinding(
 			key.WithKeys("r"),
@@ -175,6 +178,7 @@ func ListHelp() string {
 		helpKeyStyle.Render("+/-") + helpStyle.Render(" prio  ") +
 		helpKeyStyle.Render("b/f/t/E/C") + helpStyle.Render(" type  ") +
 		helpKeyStyle.Render("o/x/i/a") + helpStyle.Render(" filter  ") +
+		helpKeyStyle.Render("/") + helpStyle.Render(" search  ") +
 		helpKeyStyle.Render("q") + helpStyle.Render(" quit")
 }
 

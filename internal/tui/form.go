@@ -77,6 +77,7 @@ func NewFormModel(store *storage.Store, projectCode string, t *ticket.Ticket) Fo
 	// Initialize text inputs
 	m.title = textinput.New()
 	m.title.Placeholder = "Ticket title"
+	m.title.PlaceholderStyle = placeholderStyle
 	m.title.CharLimit = 200
 	m.title.Width = 50
 
@@ -88,21 +89,25 @@ func NewFormModel(store *storage.Store, projectCode string, t *ticket.Ticket) Fo
 
 	m.ticketType = textinput.New()
 	m.ticketType.Placeholder = "bug, feature, task, epic, cleanup"
+	m.ticketType.PlaceholderStyle = placeholderStyle
 	m.ticketType.CharLimit = 20
 	m.ticketType.Width = 30
 
 	m.priority = textinput.New()
 	m.priority.Placeholder = "1-5 (1=highest)"
+	m.priority.PlaceholderStyle = placeholderStyle
 	m.priority.CharLimit = 1
 	m.priority.Width = 10
 
 	m.assignee = textinput.New()
 	m.assignee.Placeholder = "Assignee (optional)"
+	m.assignee.PlaceholderStyle = placeholderStyle
 	m.assignee.CharLimit = 50
 	m.assignee.Width = 30
 
 	m.labels = textinput.New()
 	m.labels.Placeholder = "Comma-separated labels (optional)"
+	m.labels.PlaceholderStyle = placeholderStyle
 	m.labels.CharLimit = 200
 	m.labels.Width = 50
 

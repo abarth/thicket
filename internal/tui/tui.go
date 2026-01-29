@@ -110,7 +110,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		switch {
 		case key.Matches(msg, m.keys.Quit):
 			// Only quit from list view, or if Ctrl+C
-			if m.view == viewList || msg.String() == "ctrl+c" {
+			if (m.view == viewList && !m.list.IsSearching()) || msg.String() == "ctrl+c" {
 				return m, tea.Quit
 			}
 		case key.Matches(msg, m.keys.Help):

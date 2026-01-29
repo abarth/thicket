@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/charmbracelet/bubbles/key"
+	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
 
 	"github.com/abarth/thicket/internal/storage"
@@ -14,32 +15,43 @@ import (
 // FilterState holds the current filter settings.
 type FilterState struct {
 	Status *ticket.Status
+	Query  string
 }
 
 // ListModel handles the ticket list view.
 type ListModel struct {
-	store   *storage.Store
-	tickets []*ticket.Ticket
-	cursor  int
-	offset  int // scroll offset
-	width   int
-	height  int
-	keys    KeyMap
-	filters FilterState
-	loading bool
-	err     error
+	store       *storage.Store
+	allTickets  []*ticket.Ticket
+	tickets     []*ticket.Ticket
+	cursor      int
+	offset      int // scroll offset
+	width       int
+	height      int
+	keys        KeyMap
+	filters     FilterState
+	loading     bool
+	err         error
+	isSearching bool
+	searchInput textinput.Model
 }
 
 // NewListModel creates a new list model.
 func NewListModel(store *storage.Store) ListModel {
 	// Default to showing only open tickets
 	status := ticket.StatusOpen
+	ti := textinput.New()
+	ti.Placeholder = "Search title or description..."
+	ti.PlaceholderStyle = placeholderStyle
+	ti.Prompt = "/ "
+	ti.PromptStyle = titleStyle
+
 	return ListModel{
 		store: store,
 		keys:  DefaultKeyMap(),
 		filters: FilterState{
 			Status: &status,
 		},
+		searchInput: ti,
 	}
 }
 
@@ -56,7 +68,7 @@ func (m *ListModel) SetSize(width, height int) {
 
 // hasFilters returns true if any filters are active.
 func (m ListModel) hasFilters() bool {
-	return m.filters.Status != nil
+	return m.filters.Status != nil || m.filters.Query != ""
 }
 
 // Refresh reloads the ticket list.
@@ -74,8 +86,61 @@ func (m ListModel) loadTickets() tea.Cmd {
 	}
 }
 
+func (m *ListModel) applyFilters() {
+	if m.filters.Query == "" {
+		m.tickets = m.allTickets
+		return
+	}
+
+	query := strings.ToLower(m.filters.Query)
+	var filtered []*ticket.Ticket
+	for _, t := range m.allTickets {
+		if strings.Contains(strings.ToLower(t.Title), query) ||
+			strings.Contains(strings.ToLower(t.Description), query) {
+			filtered = append(filtered, t)
+		}
+	}
+	m.tickets = filtered
+}
+
+// IsSearching returns true if search mode is active.
+func (m ListModel) IsSearching() bool {
+	return m.isSearching
+}
+
 // Update handles messages for the list view.
 func (m ListModel) Update(msg tea.Msg) (ListModel, tea.Cmd) {
+	if m.isSearching {
+		switch msg := msg.(type) {
+		case tea.KeyMsg:
+			switch msg.String() {
+			case "enter":
+				m.isSearching = false
+				m.filters.Query = m.searchInput.Value()
+				m.applyFilters()
+				m.cursor = 0
+				m.offset = 0
+				return m, nil
+			case "esc":
+				m.isSearching = false
+				m.searchInput.SetValue(m.filters.Query)
+				m.applyFilters()
+				return m, nil
+			}
+		}
+
+		var cmd tea.Cmd
+		m.searchInput, cmd = m.searchInput.Update(msg)
+
+		// Live filtering
+		m.filters.Query = m.searchInput.Value()
+		m.applyFilters()
+		m.cursor = 0
+		m.offset = 0
+
+		return m, cmd
+	}
+
 	switch msg := msg.(type) {
 	case TicketsLoadedMsg:
 		m.loading = false
@@ -83,7 +148,8 @@ func (m ListModel) Update(msg tea.Msg) (ListModel, tea.Cmd) {
 			m.err = msg.Err
 			return m, nil
 		}
-		m.tickets = msg.Tickets
+		m.allTickets = msg.Tickets
+		m.applyFilters()
 		m.err = nil
 		// Reset cursor if out of bounds
 		if m.cursor >= len(m.tickets) {
@@ -96,6 +162,10 @@ func (m ListModel) Update(msg tea.Msg) (ListModel, tea.Cmd) {
 
 	case tea.KeyMsg:
 		switch {
+		case key.Matches(msg, m.keys.Search):
+			m.isSearching = true
+			m.searchInput.Focus()
+			return m, nil
 		case key.Matches(msg, m.keys.Up):
 			if m.cursor > 0 {
 				m.cursor--
@@ -159,6 +229,8 @@ func (m ListModel) Update(msg tea.Msg) (ListModel, tea.Cmd) {
 			return m, m.loadTickets()
 		case key.Matches(msg, m.keys.FilterAll):
 			m.filters.Status = nil
+			m.filters.Query = ""
+			m.searchInput.SetValue("")
 			m.cursor = 0
 			m.offset = 0
 			return m, m.loadTickets()
@@ -267,6 +339,9 @@ func (m *ListModel) ensureVisible() {
 func (m ListModel) visibleRows() int {
 	// Account for header row
 	rows := m.height - 2
+	if m.isSearching {
+		rows -= 2 // Account for search input and spacer
+	}
 	if rows < 1 {
 		rows = 1
 	}
@@ -283,15 +358,21 @@ func (m ListModel) View() string {
 		return "Loading tickets..."
 	}
 
+	var b strings.Builder
+
+	if m.isSearching {
+		b.WriteString(m.searchInput.View())
+		b.WriteString("\n\n")
+	}
+
 	if len(m.tickets) == 0 {
 		msg := "No tickets found."
 		if m.hasFilters() {
 			msg += " Try clearing filters with 'a'."
 		}
-		return helpStyle.Render(msg)
+		b.WriteString(helpStyle.Render(msg))
+		return b.String()
 	}
-
-	var b strings.Builder
 
 	// Table header
 	header := m.renderRow("", "ID", "PRI", "TYPE", "STATUS", "ASSIGNEE", "TITLE", false)
