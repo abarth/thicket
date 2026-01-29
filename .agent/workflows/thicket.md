@@ -5,7 +5,7 @@ description: Standard agentic coding workflow for Thicket
 Follow these steps to work on Thicket using its own issue tracking system.
 
 // turbo
-1. Check for the next high-priority ticket:
+1. Show the next high-priority ticket:
    ```bash
    ./thicket ready
    ```
@@ -30,6 +30,9 @@ Follow these steps to work on Thicket using its own issue tracking system.
    ./thicket close --json <CURRENT_TICKET_ID>
    ```
 
-6. Final thought: Before finishing, consider if any follow-up tasks are needed and create tickets for them using step 2.
+6. Final thought: Before finishing, consider if any follow-up tasks are needed and create tickets for them:
+   ```bash
+   ./thicket add --json --title "Brief descriptive title" --description "Detailed context" --created-from <CURRENT_TICKET_ID>
+   ```
 
 **CRITICAL**: NEVER edit `.thicket/tickets.jsonl` directly. Always use the `./thicket` CLI.
