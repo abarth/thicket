@@ -22,6 +22,7 @@ const (
 	fieldTitle formField = iota
 	fieldDescription
 	fieldType
+	fieldStatus
 	fieldPriority
 	fieldAssignee
 	fieldLabels
@@ -52,6 +53,7 @@ type FormModel struct {
 	title       textinput.Model
 	description textarea.Model
 	ticketType  textinput.Model
+	status      textinput.Model
 	priority    textinput.Model
 	assignee    textinput.Model
 	labels      textinput.Model
@@ -99,6 +101,12 @@ func NewFormModel(store *storage.Store, projectCode string, t *ticket.Ticket) Fo
 	m.priority.CharLimit = 1
 	m.priority.Width = 10
 
+	m.status = textinput.New()
+	m.status.Placeholder = "open, closed, icebox"
+	m.status.PlaceholderStyle = placeholderStyle
+	m.status.CharLimit = 20
+	m.status.Width = 30
+
 	m.assignee = textinput.New()
 	m.assignee.Placeholder = "Assignee (optional)"
 	m.assignee.PlaceholderStyle = placeholderStyle
@@ -118,12 +126,14 @@ func NewFormModel(store *storage.Store, projectCode string, t *ticket.Ticket) Fo
 		m.description.SetValue(t.Description)
 		m.ticketType.SetValue(string(t.Type))
 		m.priority.SetValue(strconv.Itoa(t.Priority))
+		m.status.SetValue(string(t.Status))
 		m.assignee.SetValue(t.Assignee)
 		m.labels.SetValue(strings.Join(t.Labels, ", "))
 	} else {
 		// Defaults for new ticket
 		m.priority.SetValue("2")
 		m.ticketType.SetValue("task")
+		m.status.SetValue("open")
 	}
 
 	// Store initial values for dirty check
@@ -158,6 +168,7 @@ func (m *FormModel) focusField(f formField) {
 	m.title.Blur()
 	m.description.Blur()
 	m.ticketType.Blur()
+	m.status.Blur()
 	m.priority.Blur()
 	m.assignee.Blur()
 	m.labels.Blur()
@@ -172,6 +183,8 @@ func (m *FormModel) focusField(f formField) {
 		m.description.Focus()
 	case fieldType:
 		m.ticketType.Focus()
+	case fieldStatus:
+		m.status.Focus()
 	case fieldPriority:
 		m.priority.Focus()
 	case fieldAssignee:
@@ -247,6 +260,8 @@ func (m FormModel) Update(msg tea.Msg) (FormModel, tea.Cmd) {
 		m.description, cmd = m.description.Update(msg)
 	case fieldType:
 		m.ticketType, cmd = m.ticketType.Update(msg)
+	case fieldStatus:
+		m.status, cmd = m.status.Update(msg)
 	case fieldPriority:
 		m.priority, cmd = m.priority.Update(msg)
 	case fieldAssignee:
@@ -282,6 +297,13 @@ func (m FormModel) validate() map[formField]string {
 		}
 	}
 
+	statusVal := strings.TrimSpace(m.status.Value())
+	if statusVal != "" {
+		if err := ticket.ValidateStatus(ticket.Status(statusVal)); err != nil {
+			errors[fieldStatus] = "Invalid status"
+		}
+	}
+
 	return errors
 }
 
@@ -299,6 +321,7 @@ func (m FormModel) save() tea.Cmd {
 		title := strings.TrimSpace(m.title.Value())
 		description := strings.TrimSpace(m.description.Value())
 		typ := strings.TrimSpace(m.ticketType.Value())
+		statusVal := strings.TrimSpace(m.status.Value())
 		pri := strings.TrimSpace(m.priority.Value())
 		assignee := strings.TrimSpace(m.assignee.Value())
 		labelsStr := strings.TrimSpace(m.labels.Value())
@@ -321,6 +344,11 @@ func (m FormModel) save() tea.Cmd {
 		issueType := ticket.TypeTask
 		if typ != "" {
 			issueType = ticket.Type(typ)
+		}
+
+		issueStatus := ticket.StatusOpen
+		if statusVal != "" {
+			issueStatus = ticket.Status(statusVal)
 		}
 
 		if m.isNew {
@@ -350,6 +378,7 @@ func (m FormModel) save() tea.Cmd {
 		t.Title = title
 		t.Description = description
 		t.Type = issueType
+		t.Status = issueStatus
 		t.Priority = priority
 		t.Assignee = assignee
 		t.Labels = labels
@@ -377,6 +406,8 @@ func (m FormModel) View() string {
 	b.WriteString("\n")
 	b.WriteString(m.renderField("Type", m.ticketType, fieldType))
 	b.WriteString("\n")
+	b.WriteString(m.renderField("Status", m.status, fieldStatus))
+	b.WriteString("\n")
 	b.WriteString(m.renderField("Priority", m.priority, fieldPriority))
 	b.WriteString("\n")
 	b.WriteString(m.renderField("Assignee", m.assignee, fieldAssignee))
@@ -395,6 +426,7 @@ func (m FormModel) getValues() map[formField]string {
 		fieldTitle:       m.title.Value(),
 		fieldDescription: m.description.Value(),
 		fieldType:        m.ticketType.Value(),
+		fieldStatus:      m.status.Value(),
 		fieldPriority:    m.priority.Value(),
 		fieldAssignee:    m.assignee.Value(),
 		fieldLabels:      m.labels.Value(),
