@@ -31,6 +31,7 @@ type DetailModel struct {
 	// Comment input mode
 	commenting   bool
 	commentInput textarea.Model
+	confirmClose bool
 }
 
 // NewDetailModel creates a new detail model.
@@ -91,6 +92,21 @@ func (m DetailModel) LoadTicket() tea.Cmd {
 func (m DetailModel) Update(msg tea.Msg) (DetailModel, tea.Cmd) {
 	var cmds []tea.Cmd
 
+	if m.confirmClose {
+		switch msg := msg.(type) {
+		case tea.KeyMsg:
+			switch msg.String() {
+			case "y", "Y", "enter":
+				m.confirmClose = false
+				return m, m.closeTicket()
+			case "n", "N", "esc":
+				m.confirmClose = false
+				return m, nil
+			}
+		}
+		return m, nil
+	}
+
 	switch msg := msg.(type) {
 	case TicketLoadedMsg:
 		m.loading = false
@@ -147,7 +163,8 @@ func (m DetailModel) Update(msg tea.Msg) (DetailModel, tea.Cmd) {
 			}
 		case key.Matches(msg, m.keys.Close):
 			if m.ticket != nil && m.ticket.Status == ticket.StatusOpen {
-				return m, m.closeTicket()
+				m.confirmClose = true
+				return m, nil
 			}
 		case key.Matches(msg, m.keys.Comment):
 			if m.ticket != nil {
@@ -344,6 +361,13 @@ func (m DetailModel) View() string {
 		b.WriteString(subtitleStyle.Render("Add comment (ctrl+s to save, esc to cancel):"))
 		b.WriteString("\n")
 		b.WriteString(m.commentInput.View())
+	}
+
+	// Close confirmation
+	if m.confirmClose {
+		b.WriteString("\n")
+		b.WriteString(promptStyle.Render("Close this ticket? (y/n)"))
+		b.WriteString("\n")
 	}
 
 	return b.String()

@@ -20,19 +20,20 @@ type FilterState struct {
 
 // ListModel handles the ticket list view.
 type ListModel struct {
-	store       *storage.Store
-	allTickets  []*ticket.Ticket
-	tickets     []*ticket.Ticket
-	cursor      int
-	offset      int // scroll offset
-	width       int
-	height      int
-	keys        KeyMap
-	filters     FilterState
-	loading     bool
-	err         error
-	isSearching bool
-	searchInput textinput.Model
+	store          *storage.Store
+	allTickets     []*ticket.Ticket
+	tickets        []*ticket.Ticket
+	cursor         int
+	offset         int // scroll offset
+	width          int
+	height         int
+	keys           KeyMap
+	filters        FilterState
+	loading        bool
+	err            error
+	isSearching    bool
+	searchInput    textinput.Model
+	pendingCloseID string
 }
 
 // NewListModel creates a new list model.
@@ -141,6 +142,22 @@ func (m ListModel) Update(msg tea.Msg) (ListModel, tea.Cmd) {
 		return m, cmd
 	}
 
+	if m.pendingCloseID != "" {
+		switch msg := msg.(type) {
+		case tea.KeyMsg:
+			switch msg.String() {
+			case "y", "Y", "enter":
+				id := m.pendingCloseID
+				m.pendingCloseID = ""
+				return m, m.closeTicket(id)
+			case "n", "N", "esc":
+				m.pendingCloseID = ""
+				return m, nil
+			}
+		}
+		return m, nil
+	}
+
 	switch msg := msg.(type) {
 	case TicketsLoadedMsg:
 		m.loading = false
@@ -229,7 +246,8 @@ func (m ListModel) Update(msg tea.Msg) (ListModel, tea.Cmd) {
 			if len(m.tickets) > 0 && m.cursor < len(m.tickets) {
 				t := m.tickets[m.cursor]
 				if t.Status == ticket.StatusOpen {
-					return m, m.closeTicket(t.ID)
+					m.pendingCloseID = t.ID
+					return m, nil
 				}
 			}
 		case key.Matches(msg, m.keys.Refresh):
@@ -368,6 +386,9 @@ func (m ListModel) visibleRows() int {
 	if m.isSearching {
 		rows -= 2 // Account for search input and spacer
 	}
+	if m.pendingCloseID != "" {
+		rows -= 2 // Account for prompt and spacer
+	}
 	if rows < 1 {
 		rows = 1
 	}
@@ -388,6 +409,11 @@ func (m ListModel) View() string {
 
 	if m.isSearching {
 		b.WriteString(m.searchInput.View())
+		b.WriteString("\n\n")
+	}
+
+	if m.pendingCloseID != "" {
+		b.WriteString(promptStyle.Render(fmt.Sprintf("Close ticket %s? (y/n)", m.pendingCloseID)))
 		b.WriteString("\n\n")
 	}
 

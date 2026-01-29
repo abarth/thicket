@@ -94,6 +94,11 @@ var (
 			Background(lipgloss.Color("237")).
 			Padding(0, 1)
 
-        placeholderStyle = lipgloss.NewStyle().
-                                Foreground(lipgloss.Color("243")) // Gray
+	placeholderStyle = lipgloss.NewStyle().
+				Foreground(lipgloss.Color("243")) // Gray
+
+	promptStyle = lipgloss.NewStyle().
+			Bold(true).
+			Foreground(colorWarning).
+			Padding(0, 1)
 )
