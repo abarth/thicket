@@ -4,7 +4,21 @@ A lightweight issue tracker designed for coding agents to track their work in pr
 
 ## Overview
 
-Thicket stores tickets in a `.thicket/tickets.jsonl` file that is tracked by git and shared by everyone working on the project. For efficient queries, data is cached in a local SQLite database that automatically syncs with the JSONL file.
+Coding agents work well when given tasks that can be accomplished in a single session, but they struggle with more complex work that requires iteration and elaboration over a longer timescale. As agents work, they naturally generate a backlog of bugs, feature requests, and cleanups that often gets lost at the end of each session. If you try to manage this backlog in Markdown, you quickly end up with a mess of half-completed todo lists.
+
+**Thicket** provides a better way: a lightweight issue tracker designed specifically for managing agentic coding tasks.
+
+### How it Works
+
+Instead of prompting agents directly, the agents pull the highest priority ticket from the tracker and work on it. 
+
+- **Agent-Driven Backlog**: As part of their work, agents discover more tasks, which they track by creating tickets. 
+- **Reduced Cognitive Overhead**: After resolving a ticket, agents are prompted to create more tickets for follow-on work. This ensures technical discoveries are captured without you needing to generate every prompt yourself.
+- **Git-Backed Source of Truth**: Tickets are stored in a `.thicket/tickets.jsonl` file tracked by git and shared by everyone working on the project. For efficient queries, data is cached in a local SQLite database that automatically syncs with the JSONL file.
+
+### Focus on Strategy
+
+Thicket allows you to focus on strategic decisions and high-level feedback that guides the direction of the project. You set the priorities for where the project should invest, rather than managing individual coding agents.
 
 ## Installation
 
