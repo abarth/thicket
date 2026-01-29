@@ -33,6 +33,13 @@ type KeyMap struct {
 	FilterIcebox key.Binding
 	FilterAll    key.Binding
 
+	// Type settings
+	SetBug     key.Binding
+	SetFeature key.Binding
+	SetTask    key.Binding
+	SetEpic    key.Binding
+	SetCleanup key.Binding
+
 	// Form navigation
 	NextField key.Binding
 	PrevField key.Binding
@@ -119,6 +126,26 @@ func DefaultKeyMap() KeyMap {
 			key.WithKeys("a"),
 			key.WithHelp("a", "show all"),
 		),
+		SetBug: key.NewBinding(
+			key.WithKeys("b"),
+			key.WithHelp("b", "set bug"),
+		),
+		SetFeature: key.NewBinding(
+			key.WithKeys("f"),
+			key.WithHelp("f", "set feature"),
+		),
+		SetTask: key.NewBinding(
+			key.WithKeys("t"),
+			key.WithHelp("t", "set task"),
+		),
+		SetEpic: key.NewBinding(
+			key.WithKeys("E"),
+			key.WithHelp("E", "set epic"),
+		),
+		SetCleanup: key.NewBinding(
+			key.WithKeys("C"),
+			key.WithHelp("C", "set cleanup"),
+		),
 		NextField: key.NewBinding(
 			key.WithKeys("tab"),
 			key.WithHelp("tab", "next field"),
@@ -145,7 +172,8 @@ func ListHelp() string {
 		helpKeyStyle.Render("n") + helpStyle.Render(" new  ") +
 		helpKeyStyle.Render("e") + helpStyle.Render(" edit  ") +
 		helpKeyStyle.Render("c") + helpStyle.Render(" close  ") +
-		helpKeyStyle.Render("+/-") + helpStyle.Render(" priority  ") +
+		helpKeyStyle.Render("+/-") + helpStyle.Render(" prio  ") +
+		helpKeyStyle.Render("b/f/t/E/C") + helpStyle.Render(" type  ") +
 		helpKeyStyle.Render("o/x/i/a") + helpStyle.Render(" filter  ") +
 		helpKeyStyle.Render("q") + helpStyle.Render(" quit")
 }
@@ -156,6 +184,7 @@ func DetailHelp() string {
 		helpKeyStyle.Render("e") + helpStyle.Render(" edit  ") +
 		helpKeyStyle.Render("c") + helpStyle.Render(" close  ") +
 		helpKeyStyle.Render("m") + helpStyle.Render(" comment  ") +
+		helpKeyStyle.Render("b/f/t/E/C") + helpStyle.Render(" type  ") +
 		helpKeyStyle.Render("j/k") + helpStyle.Render(" scroll  ") +
 		helpKeyStyle.Render("q") + helpStyle.Render(" quit")
 }

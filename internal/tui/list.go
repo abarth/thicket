@@ -174,6 +174,31 @@ func (m ListModel) Update(msg tea.Msg) (ListModel, tea.Cmd) {
 					return m, m.updatePriority(t.ID, t.Priority-1)
 				}
 			}
+		case key.Matches(msg, m.keys.SetBug):
+			if len(m.tickets) > 0 && m.cursor < len(m.tickets) {
+				t := m.tickets[m.cursor]
+				return m, m.updateType(t.ID, ticket.TypeBug)
+			}
+		case key.Matches(msg, m.keys.SetFeature):
+			if len(m.tickets) > 0 && m.cursor < len(m.tickets) {
+				t := m.tickets[m.cursor]
+				return m, m.updateType(t.ID, ticket.TypeFeature)
+			}
+		case key.Matches(msg, m.keys.SetTask):
+			if len(m.tickets) > 0 && m.cursor < len(m.tickets) {
+				t := m.tickets[m.cursor]
+				return m, m.updateType(t.ID, ticket.TypeTask)
+			}
+		case key.Matches(msg, m.keys.SetEpic):
+			if len(m.tickets) > 0 && m.cursor < len(m.tickets) {
+				t := m.tickets[m.cursor]
+				return m, m.updateType(t.ID, ticket.TypeEpic)
+			}
+		case key.Matches(msg, m.keys.SetCleanup):
+			if len(m.tickets) > 0 && m.cursor < len(m.tickets) {
+				t := m.tickets[m.cursor]
+				return m, m.updateType(t.ID, ticket.TypeCleanup)
+			}
 		}
 	}
 
@@ -205,6 +230,20 @@ func (m ListModel) updatePriority(id string, newPriority int) tea.Cmd {
 			return ErrorMsg{Err: err}
 		}
 		return TicketPriorityUpdatedMsg{ID: id, NewPriority: newPriority}
+	}
+}
+
+func (m ListModel) updateType(id string, newType ticket.Type) tea.Cmd {
+	return func() tea.Msg {
+		t, err := m.store.Get(id)
+		if err != nil {
+			return ErrorMsg{Err: err}
+		}
+		t.Type = newType
+		if err := m.store.Update(t); err != nil {
+			return ErrorMsg{Err: err}
+		}
+		return TicketTypeUpdatedMsg{ID: id, NewType: newType}
 	}
 }
 

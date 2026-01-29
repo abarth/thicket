@@ -29,8 +29,8 @@ type DetailModel struct {
 	err       error
 
 	// Comment input mode
-	commenting    bool
-	commentInput  textarea.Model
+	commenting   bool
+	commentInput textarea.Model
 }
 
 // NewDetailModel creates a new detail model.
@@ -155,6 +155,26 @@ func (m DetailModel) Update(msg tea.Msg) (DetailModel, tea.Cmd) {
 				m.commentInput.Focus()
 				return m, nil
 			}
+		case key.Matches(msg, m.keys.SetBug):
+			if m.ticket != nil {
+				return m, m.updateType(ticket.TypeBug)
+			}
+		case key.Matches(msg, m.keys.SetFeature):
+			if m.ticket != nil {
+				return m, m.updateType(ticket.TypeFeature)
+			}
+		case key.Matches(msg, m.keys.SetTask):
+			if m.ticket != nil {
+				return m, m.updateType(ticket.TypeTask)
+			}
+		case key.Matches(msg, m.keys.SetEpic):
+			if m.ticket != nil {
+				return m, m.updateType(ticket.TypeEpic)
+			}
+		case key.Matches(msg, m.keys.SetCleanup):
+			if m.ticket != nil {
+				return m, m.updateType(ticket.TypeCleanup)
+			}
 		}
 	}
 
@@ -185,6 +205,20 @@ func (m DetailModel) saveComment(content string) tea.Cmd {
 			return ErrorMsg{Err: err}
 		}
 		return CommentSavedMsg{TicketID: m.ticketID}
+	}
+}
+
+func (m DetailModel) updateType(newType ticket.Type) tea.Cmd {
+	return func() tea.Msg {
+		t, err := m.store.Get(m.ticketID)
+		if err != nil {
+			return ErrorMsg{Err: err}
+		}
+		t.Type = newType
+		if err := m.store.Update(t); err != nil {
+			return ErrorMsg{Err: err}
+		}
+		return TicketTypeUpdatedMsg{ID: m.ticketID, NewType: newType}
 	}
 }
 

@@ -154,6 +154,10 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.statusMsg = fmt.Sprintf("Priority set to %d for %s", msg.NewPriority, msg.ID)
 		return m, m.list.Refresh()
 
+	case TicketTypeUpdatedMsg:
+		m.statusMsg = fmt.Sprintf("Type set to %s for %s", msg.NewType, msg.ID)
+		return m, m.list.Refresh()
+
 	case RefreshListMsg:
 		return m, m.list.Refresh()
 

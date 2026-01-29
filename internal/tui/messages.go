@@ -36,6 +36,12 @@ type TicketPriorityUpdatedMsg struct {
 	NewPriority int
 }
 
+// TicketTypeUpdatedMsg is sent after a ticket's type has been updated.
+type TicketTypeUpdatedMsg struct {
+	ID      string
+	NewType ticket.Type
+}
+
 // RefreshListMsg is sent to refresh the ticket list.
 type RefreshListMsg struct{}
 
