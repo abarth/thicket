@@ -32,9 +32,14 @@ type ListModel struct {
 
 // NewListModel creates a new list model.
 func NewListModel(store *storage.Store) ListModel {
+	// Default to showing only open tickets
+	status := ticket.StatusOpen
 	return ListModel{
 		store: store,
 		keys:  DefaultKeyMap(),
+		filters: FilterState{
+			Status: &status,
+		},
 	}
 }
 
