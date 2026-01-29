@@ -27,20 +27,25 @@ thicket tui
 |-----|--------|
 | **Global** | |
 | `q` | Quit |
+| `?` | Show help |
 | **List View** | |
 | `j`/`k`, `Arrows` | Navigate up/down |
-| `Enter` | View ticket details |
+| `g`, `Home` | Go to top |
+| `G`, `End` | Go to bottom |
+| `Enter`, `l` | View ticket details |
 | `n` | Create new ticket |
 | `e` | Edit selected ticket |
 | `c` | Close selected ticket |
+| `+`/`=` | Lower priority (increment priority value) |
+| `-`/`_` | Higher priority (decrement priority value) |
 | `o`/`x`/`a` | Filter: open/closed/all |
 | `r` | Refresh list |
 | **Detail View** | |
-| `Esc` | Back to list |
+| `Esc`, `h`, `Backspace` | Back to list |
 | `e` | Edit ticket |
 | `c` | Close ticket |
 | `m` | Add comment |
-| `j`/`k` | Scroll |
+| `j`/`k`, `Arrows` | Scroll description/comments |
 | **Form View** | |
 | `Tab` | Next field |
 | `Shift+Tab` | Previous field |
