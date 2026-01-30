@@ -443,7 +443,7 @@ func (m ListModel) View() string {
 	}
 
 	// Table header
-	header := m.renderRow("", "ID", "PRI", "TYPE", "STATUS", "ASSIGNEE", "TITLE", false)
+	header := m.renderRow("  ", "ID", "PRI", "TYPE", "STATUS", "ASSIGNEE", "TITLE", false)
 	b.WriteString(tableHeaderStyle.Render(header))
 	b.WriteString("\n")
 
