@@ -66,6 +66,7 @@ func (m ListModel) Init() tea.Cmd {
 func (m *ListModel) SetSize(width, height int) {
 	m.width = width
 	m.height = height
+	m.searchInput.Width = width - 5 // Leave room for prompt and padding
 }
 
 // hasFilters returns true if any filters are active.
@@ -443,7 +444,7 @@ func (m ListModel) View() string {
 	}
 
 	// Table header
-	header := m.renderRow("  ", "ID", "PRI", "TYPE", "STATUS", "ASSIGNEE", "TITLE", false)
+	header := m.renderRow("  ", "ID", "PRI", "TYPE", "STATUS", "TITLE", false)
 	b.WriteString(tableHeaderStyle.Render(header))
 	b.WriteString("\n")
 
@@ -471,7 +472,6 @@ func (m ListModel) View() string {
 			fmt.Sprintf("%d", t.Priority),
 			string(t.Type),
 			string(t.Status),
-			t.Assignee,
 			t.Title,
 			selected,
 		)
@@ -493,16 +493,15 @@ func (m ListModel) View() string {
 	return b.String()
 }
 
-func (m ListModel) renderRow(cursor, id, pri, typ, status, assignee, title string, selected bool) string {
+func (m ListModel) renderRow(cursor, id, pri, typ, status, title string, selected bool) string {
 	// Truncate fields
-	if len(title) > 40 {
-		title = title[:37] + "..."
+	titleWidth := m.width - 34
+	if titleWidth < 10 {
+		titleWidth = 10
 	}
-	if assignee == "" {
-		assignee = "-"
-	}
-	if len(assignee) > 10 {
-		assignee = assignee[:7] + "..."
+
+	if len(title) > titleWidth {
+		title = title[:titleWidth-3] + "..."
 	}
 	if typ == "" {
 		typ = "-"
@@ -512,6 +511,6 @@ func (m ListModel) renderRow(cursor, id, pri, typ, status, assignee, title strin
 	displayTitle := highlightMatches(title, m.filters.Query)
 
 	// Format with fixed widths
-	return fmt.Sprintf("%s%-10s %3s  %-8s %-6s %-10s %s",
-		cursor, id, pri, typ, status, assignee, displayTitle)
+	return fmt.Sprintf("%s%-10s %3s  %-8s %-6s %s",
+		cursor, id, pri, typ, status, displayTitle)
 }
