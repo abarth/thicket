@@ -186,7 +186,7 @@ func (m DetailModel) Update(msg tea.Msg) (DetailModel, tea.Cmd) {
 			}
 		case key.Matches(msg, m.keys.PriorityUp):
 			if m.ticket != nil {
-				if m.ticket.Priority > 1 {
+				if m.ticket.Priority > 0 {
 					return m, m.updatePriority(m.ticket.Priority - 1)
 				}
 			}

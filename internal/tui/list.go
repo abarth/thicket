@@ -297,7 +297,7 @@ func (m ListModel) Update(msg tea.Msg) (ListModel, tea.Cmd) {
 		case key.Matches(msg, m.keys.PriorityUp):
 			if len(m.tickets) > 0 && m.cursor < len(m.tickets) {
 				t := m.tickets[m.cursor]
-				if t.Priority > 1 {
+				if t.Priority > 0 {
 					return m, m.updatePriority(t.ID, t.Priority-1)
 				}
 			}

@@ -96,7 +96,7 @@ func NewFormModel(store *storage.Store, projectCode string, t *ticket.Ticket) Fo
 	m.ticketType.Width = 30
 
 	m.priority = textinput.New()
-	m.priority.Placeholder = "1-5 (1=highest)"
+	m.priority.Placeholder = "0-5 (0=highest)"
 	m.priority.PlaceholderStyle = placeholderStyle
 	m.priority.CharLimit = 1
 	m.priority.Width = 10
@@ -285,8 +285,8 @@ func (m FormModel) validate() map[formField]string {
 	pri := strings.TrimSpace(m.priority.Value())
 	if pri != "" {
 		p, err := strconv.Atoi(pri)
-		if err != nil || p < 1 || p > 5 {
-			errors[fieldPriority] = "Priority must be 1-5"
+		if err != nil || p < 0 || p > 5 {
+			errors[fieldPriority] = "Priority must be 0-5"
 		}
 	}
 
