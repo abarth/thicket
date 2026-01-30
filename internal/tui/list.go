@@ -508,7 +508,10 @@ func (m ListModel) renderRow(cursor, id, pri, typ, status, assignee, title strin
 		typ = "-"
 	}
 
+	// Highlight matches in title
+	displayTitle := highlightMatches(title, m.filters.Query)
+
 	// Format with fixed widths
 	return fmt.Sprintf("%s%-10s %3s  %-8s %-6s %-10s %s",
-		cursor, id, pri, typ, status, assignee, title)
+		cursor, id, pri, typ, status, assignee, displayTitle)
 }

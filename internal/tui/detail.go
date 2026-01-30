@@ -32,6 +32,8 @@ type DetailModel struct {
 	commenting   bool
 	commentInput textarea.Model
 	confirmClose bool
+
+	searchQuery string
 }
 
 // NewDetailModel creates a new detail model.
@@ -65,6 +67,11 @@ func (m *DetailModel) SetTicketID(id string) {
 	m.blocking = nil
 	m.scrollY = 0
 	m.commenting = false
+}
+
+// SetSearchQuery sets the query to highlight.
+func (m *DetailModel) SetSearchQuery(query string) {
+	m.searchQuery = query
 }
 
 // LoadTicket loads the ticket details.
@@ -256,7 +263,7 @@ func (m DetailModel) View() string {
 	var lines []string
 
 	lines = append(lines, m.renderField("ID", t.ID))
-	lines = append(lines, m.renderField("Title", t.Title))
+	lines = append(lines, m.renderField("Title", highlightMatches(t.Title, m.searchQuery)))
 
 	typ := string(t.Type)
 	if typ == "" {
@@ -309,7 +316,7 @@ func (m DetailModel) View() string {
 		lines = append(lines, subtitleStyle.Render("Description:"))
 		// Wrap description lines
 		for _, line := range strings.Split(t.Description, "\n") {
-			lines = append(lines, "  "+line)
+			lines = append(lines, "  "+highlightMatches(line, m.searchQuery))
 		}
 	}
 
@@ -319,7 +326,7 @@ func (m DetailModel) View() string {
 		lines = append(lines, subtitleStyle.Render("Comments:"))
 		for _, c := range m.comments {
 			timestamp := c.Created.Format("2006-01-02 15:04")
-			lines = append(lines, fmt.Sprintf("  [%s] %s", timestamp, c.Content))
+			lines = append(lines, fmt.Sprintf("  [%s] %s", timestamp, highlightMatches(c.Content, m.searchQuery)))
 		}
 	}
 

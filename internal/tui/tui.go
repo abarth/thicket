@@ -122,6 +122,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case ViewTicketMsg:
 		m.view = viewDetail
 		m.detail.SetTicketID(msg.ID)
+		m.detail.SetSearchQuery(m.list.filters.Query)
 		return m, m.detail.LoadTicket()
 
 	case BackToListMsg:

@@ -1,7 +1,11 @@
 // Package tui provides a terminal user interface for Thicket.
 package tui
 
-import "github.com/charmbracelet/lipgloss"
+import (
+	"strings"
+
+	"github.com/charmbracelet/lipgloss"
+)
 
 // Colors used throughout the TUI.
 var (
@@ -101,4 +105,31 @@ var (
 			Bold(true).
 			Foreground(colorWarning).
 			Padding(0, 1)
+
+	highlightStyle = lipgloss.NewStyle().
+			Background(lipgloss.Color("226")).
+			Foreground(lipgloss.Color("0"))
 )
+
+func highlightMatches(text, query string) string {
+	if query == "" {
+		return text
+	}
+	lowerText := strings.ToLower(text)
+	lowerQuery := strings.ToLower(query)
+
+	var b strings.Builder
+	lastEnd := 0
+	for {
+		idx := strings.Index(lowerText[lastEnd:], lowerQuery)
+		if idx == -1 {
+			b.WriteString(text[lastEnd:])
+			break
+		}
+		idx += lastEnd
+		b.WriteString(text[lastEnd:idx])
+		b.WriteString(highlightStyle.Render(text[idx : idx+len(query)]))
+		lastEnd = idx + len(query)
+	}
+	return b.String()
+}
