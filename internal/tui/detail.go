@@ -67,6 +67,7 @@ func (m *DetailModel) SetTicketID(id string) {
 	m.blocking = nil
 	m.scrollY = 0
 	m.commenting = false
+	m.commentInput.Reset()
 }
 
 // SetSearchQuery sets the query to highlight.
