@@ -22,6 +22,7 @@ type FilterState struct {
 type ListModel struct {
 	store          *storage.Store
 	allTickets     []*ticket.Ticket
+	allComments    []*ticket.Comment
 	tickets        []*ticket.Ticket
 	cursor         int
 	offset         int // scroll offset
@@ -41,7 +42,7 @@ func NewListModel(store *storage.Store) ListModel {
 	// Default to showing only open tickets
 	status := ticket.StatusOpen
 	ti := textinput.New()
-	ti.Placeholder = "Search title or description..."
+	ti.Placeholder = "Search title, description, or comments..."
 	ti.PlaceholderStyle = placeholderStyle
 	ti.Prompt = "/ "
 	ti.PromptStyle = titleStyle
@@ -83,7 +84,11 @@ func (m ListModel) loadTickets() tea.Cmd {
 		if err != nil {
 			return TicketsLoadedMsg{Err: err}
 		}
-		return TicketsLoadedMsg{Tickets: tickets}
+		comments, err := m.store.ListAllComments()
+		if err != nil {
+			return TicketsLoadedMsg{Err: err}
+		}
+		return TicketsLoadedMsg{Tickets: tickets, Comments: comments}
 	}
 }
 
@@ -94,10 +99,20 @@ func (m *ListModel) applyFilters() {
 	}
 
 	query := strings.ToLower(m.filters.Query)
+
+	// Map ticket IDs to comments that match the query
+	ticketHasMatchingComment := make(map[string]bool)
+	for _, c := range m.allComments {
+		if strings.Contains(strings.ToLower(c.Content), query) {
+			ticketHasMatchingComment[c.TicketID] = true
+		}
+	}
+
 	var filtered []*ticket.Ticket
 	for _, t := range m.allTickets {
 		if strings.Contains(strings.ToLower(t.Title), query) ||
-			strings.Contains(strings.ToLower(t.Description), query) {
+			strings.Contains(strings.ToLower(t.Description), query) ||
+			ticketHasMatchingComment[t.ID] {
 			filtered = append(filtered, t)
 		}
 	}
@@ -173,6 +188,7 @@ func (m ListModel) Update(msg tea.Msg) (ListModel, tea.Cmd) {
 		}
 
 		m.allTickets = msg.Tickets
+		m.allComments = msg.Comments
 		m.applyFilters()
 		m.err = nil
 

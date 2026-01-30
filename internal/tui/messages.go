@@ -47,8 +47,9 @@ type RefreshListMsg struct{}
 
 // TicketsLoadedMsg is sent when tickets have been loaded from storage.
 type TicketsLoadedMsg struct {
-	Tickets []*ticket.Ticket
-	Err     error
+	Tickets  []*ticket.Ticket
+	Comments []*ticket.Comment
+	Err      error
 }
 
 // TicketLoadedMsg is sent when a single ticket's details have been loaded.

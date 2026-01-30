@@ -166,6 +166,11 @@ func (s *Store) GetComments(ticketID string) ([]*ticket.Comment, error) {
 	return s.db.GetCommentsForTicket(ticketID)
 }
 
+// ListAllComments retrieves all comments from storage.
+func (s *Store) ListAllComments() ([]*ticket.Comment, error) {
+	return s.db.GetAllComments()
+}
+
 // AddDependency creates a new dependency and persists it to both JSONL and SQLite.
 // For blocked_by dependencies, it validates that no circular dependency would be created.
 func (s *Store) AddDependency(d *ticket.Dependency) error {
