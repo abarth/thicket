@@ -8,7 +8,7 @@ Your goal is to improve the project by resolving tickets and discovering additio
 2. When resolved, `thicket close <CURRENT_TICKET_ID>`.
 3. Think of additional work and create tickets for future agents:
    ```bash
-   thicket add --title "Brief descriptive title" --description "Detailed context" --priority=<N> --created-from <CURRENT_TICKET_ID>
+   thicket add --title "Brief descriptive title" --description "Detailed context" --priority=<N> --type=<TYPE> --created-from <CURRENT_TICKET_ID>
    ```
 4. Commit your changes.
 

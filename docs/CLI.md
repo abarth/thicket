@@ -68,15 +68,14 @@ thicket init --project <CODE>
 Create a new ticket.
 
 ```bash
-thicket add [--interactive] [--title <TITLE>] [--description <DESC>] [--type <TYPE>] [--priority <N>] [--assignee <NAME>] [--label <LABEL>]... [--blocks <ID>] [--blocked-by <ID>] [--created-from <ID>]
+thicket add [--title <TITLE>] [--description <DESC>] [--type <TYPE>] [--priority <N>] [--assignee <NAME>] [--label <LABEL>]... [--blocks <ID>] [--blocked-by <ID>] [--created-from <ID>]
 ```
 
 **Flags:**
-- `--interactive`, `-i`: Enter interactive mode to provide ticket details. If title, description, type, or priority are not provided as flags, the tool will prompt for them.
-- `--title`: Short summary of the ticket (required if not in interactive mode)
+- `--title`: Short summary of the ticket (required)
 - `--description`: Detailed explanation
 - `--type`: Ticket type (e.g., bug, feature, task, epic, cleanup)
-- `--priority`: Integer priority (default: 0, lower = higher priority)
+- `--priority`: Integer priority (default: 2, lower = higher priority)
 - `--assignee`: Name or ID of the person assigned to the ticket
 - `--label`: Add a label (can be specified multiple times)
 - `--blocks`: Mark an existing ticket as blocked by this new ticket
@@ -86,7 +85,7 @@ thicket add [--interactive] [--title <TITLE>] [--description <DESC>] [--type <TY
 **Examples:**
 ```bash
 # Create a ticket with labels and type
-thicket add --title "Fix login bug" --type bug --label bug --label urgent
+thicket add --title "Fix login bug" --type bug --priority 1 --label security
 ```
 
 ### `thicket list`

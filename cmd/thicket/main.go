@@ -26,7 +26,7 @@ func run() error {
 	// flag.Parse() would consume everything, but NewFlagSet.Parse()
 	// stops at the first non-flag argument if we don't use flag.CommandLine.
 	// Actually, by default it continues. We need to handle this.
-	
+
 	if len(os.Args) < 2 {
 		printUsage()
 		return nil
@@ -116,11 +116,10 @@ Run 'thicket <command> --help' for more information on a command.
 
 Examples:
   thicket init --project TH
-  thicket add --interactive
   thicket add --title "Fix bug" --type bug --priority 1 --assignee "Alice"
   thicket list --status open
+	thicket ready
   thicket show TH-abc123
-  thicket update --type feature --priority 2 --assignee "Bob" TH-abc123
   thicket close TH-abc123
   thicket comment TH-abc123 "Working on this now"`)
 }

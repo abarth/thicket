@@ -37,6 +37,8 @@ func TUI(args []string) error {
 		fmt.Fprintln(os.Stderr, "    Esc, h, bksp  Back to list")
 		fmt.Fprintln(os.Stderr, "    e             Edit ticket")
 		fmt.Fprintln(os.Stderr, "    c             Close ticket")
+		fmt.Fprintln(os.Stderr, "    +/=           Lower priority (increment priority value)")
+		fmt.Fprintln(os.Stderr, "    -/_           Higher priority (decrement priority value)")
 		fmt.Fprintln(os.Stderr, "    m             Add comment")
 		fmt.Fprintln(os.Stderr, "    j/k, arrows   Scroll description/comments")
 		fmt.Fprintln(os.Stderr, "")

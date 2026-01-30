@@ -1,11 +1,8 @@
 package commands
 
 import (
-	"bufio"
-	"flag"
 	"fmt"
 	"os"
-	"strconv"
 	"strings"
 
 	"github.com/abarth/thicket/internal/config"
@@ -32,18 +29,16 @@ func Add(args []string) error {
 	title := fs.String("title", "", "Ticket title")
 	description := fs.String("description", "", "Ticket description")
 	issueType := fs.String("type", "", "Ticket type (e.g., bug, feature, task)")
-	priority := fs.Int("priority", 0, "Ticket priority (lower = higher priority)")
+	priority := fs.Int("priority", 2, "Ticket priority (lower = higher priority)")
 	assignee := fs.String("assignee", "", "Assign ticket to person")
-	interactive := fs.Bool("interactive", false, "Interactive mode")
 	blocks := fs.String("blocks", "", "Existing ticket that is blocked by this new ticket")
 	blockedBy := fs.String("blocked-by", "", "Existing ticket that blocks this new ticket")
 	createdFrom := fs.String("created-from", "", "Existing ticket this was created from")
 	var labels labelSlice
 	fs.Var(&labels, "label", "Add a label (can be specified multiple times)")
 
-	fs.BoolVar(interactive, "i", false, "Interactive mode (shorthand)")
 	fs.Usage = func() {
-		fmt.Fprintln(os.Stderr, "Usage: thicket add [--interactive] [--title <TITLE>] [--description <DESC>] [--type <TYPE>] [--priority <N>] [--assignee <NAME>] [--label <LABEL>]... [--blocks <ID>] [--blocked-by <ID>] [--created-from <ID>] [--json] [--data-dir <DIR>]")
+		fmt.Fprintln(os.Stderr, "Usage: thicket add [--title <TITLE>] [--description <DESC>] [--type <TYPE>] [--priority <N>] [--assignee <NAME>] [--label <LABEL>]... [--blocks <ID>] [--blocked-by <ID>] [--created-from <ID>] [--json] [--data-dir <DIR>]")
 		fmt.Fprintln(os.Stderr, "\nCreate a new ticket.")
 		fmt.Fprintln(os.Stderr, "\nFlags:")
 		fs.PrintDefaults()
@@ -54,59 +49,6 @@ func Add(args []string) error {
 	}
 
 	handleGlobalFlags(*dataDir)
-
-	if *interactive {
-		scanner := bufio.NewScanner(os.Stdin)
-		if *title == "" {
-			fmt.Print("Title: ")
-			if scanner.Scan() {
-				*title = strings.TrimSpace(scanner.Text())
-			}
-		}
-		if *description == "" {
-			fmt.Print("Description: ")
-			if scanner.Scan() {
-				*description = strings.TrimSpace(scanner.Text())
-			}
-		}
-		if *issueType == "" {
-			fmt.Print("Type [task]: ")
-			if scanner.Scan() {
-				*issueType = strings.TrimSpace(scanner.Text())
-				if *issueType == "" {
-					*issueType = string(ticket.TypeTask)
-				}
-			} else {
-				*issueType = string(ticket.TypeTask)
-			}
-		}
-
-		// Check if priority was explicitly set
-		prioritySet := false
-		fs.Visit(func(f *flag.Flag) {
-			if f.Name == "priority" {
-				prioritySet = true
-			}
-		})
-
-		if !prioritySet {
-			fmt.Print("Priority [2]: ")
-			if scanner.Scan() {
-				val := strings.TrimSpace(scanner.Text())
-				if val == "" {
-					*priority = 2
-				} else {
-					if p, err := strconv.Atoi(val); err == nil {
-						*priority = p
-					} else {
-						*priority = 2
-					}
-				}
-			} else {
-				*priority = 2
-			}
-		}
-	}
 
 	if *title == "" {
 		return thickerr.MissingRequired("title")
