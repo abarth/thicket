@@ -128,6 +128,9 @@ func (m DetailModel) Update(msg tea.Msg) (DetailModel, tea.Cmd) {
 		m.err = nil
 		return m, nil
 
+	case CommentSavedMsg:
+		return m, m.LoadTicket()
+
 	case tea.KeyMsg:
 		// If in commenting mode, handle differently
 		if m.commenting {
@@ -140,6 +143,7 @@ func (m DetailModel) Update(msg tea.Msg) (DetailModel, tea.Cmd) {
 				content := strings.TrimSpace(m.commentInput.Value())
 				if content != "" {
 					m.commenting = false
+					m.commentInput.Reset()
 					return m, m.saveComment(content)
 				}
 				return m, nil
