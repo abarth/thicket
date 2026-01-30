@@ -179,6 +179,16 @@ func (m DetailModel) Update(msg tea.Msg) (DetailModel, tea.Cmd) {
 				m.commentInput.Focus()
 				return m, nil
 			}
+		case key.Matches(msg, m.keys.PriorityUp):
+			if m.ticket != nil {
+				if m.ticket.Priority > 1 {
+					return m, m.updatePriority(m.ticket.Priority - 1)
+				}
+			}
+		case key.Matches(msg, m.keys.PriorityDown):
+			if m.ticket != nil {
+				return m, m.updatePriority(m.ticket.Priority + 1)
+			}
 		case key.Matches(msg, m.keys.SetBug):
 			if m.ticket != nil {
 				return m, m.updateType(ticket.TypeBug)
@@ -229,6 +239,20 @@ func (m DetailModel) saveComment(content string) tea.Cmd {
 			return ErrorMsg{Err: err}
 		}
 		return CommentSavedMsg{TicketID: m.ticketID}
+	}
+}
+
+func (m DetailModel) updatePriority(newPriority int) tea.Cmd {
+	return func() tea.Msg {
+		t, err := m.store.Get(m.ticketID)
+		if err != nil {
+			return ErrorMsg{Err: err}
+		}
+		t.Priority = newPriority
+		if err := m.store.Update(t); err != nil {
+			return ErrorMsg{Err: err}
+		}
+		return TicketPriorityUpdatedMsg{ID: m.ticketID, NewPriority: newPriority}
 	}
 }
 

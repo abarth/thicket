@@ -188,6 +188,7 @@ func DetailHelp() string {
 		helpKeyStyle.Render("e") + helpStyle.Render(" edit  ") +
 		helpKeyStyle.Render("c") + helpStyle.Render(" close  ") +
 		helpKeyStyle.Render("m") + helpStyle.Render(" comment  ") +
+		helpKeyStyle.Render("+/-") + helpStyle.Render(" prio  ") +
 		helpKeyStyle.Render("b/f/t/E/C") + helpStyle.Render(" type  ") +
 		helpKeyStyle.Render("j/k") + helpStyle.Render(" scroll  ") +
 		helpKeyStyle.Render("q") + helpStyle.Render(" quit")
