@@ -22,11 +22,15 @@ Thicket allows you to focus on strategic decisions and high-level feedback that 
 
 ## Installation
 
+The easiest way to install Thicket is via `go install`:
+
 ```bash
 go install github.com/abarth/thicket/cmd/thicket@latest
 ```
 
-Or build from source:
+This will install the `thicket` binary to your `GOBIN` directory (typically `~/go/bin`). Ensure this directory is in your `PATH`.
+
+Alternatively, you can build from source:
 
 ```bash
 git clone https://github.com/abarth/thicket.git
