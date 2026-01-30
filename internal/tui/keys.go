@@ -15,14 +15,14 @@ type KeyMap struct {
 	Bottom key.Binding
 
 	// Actions
-	Enter   key.Binding
-	Back    key.Binding
-	New     key.Binding
-	Edit    key.Binding
-	Close   key.Binding
-	Comment key.Binding
-	Search  key.Binding
-	Refresh key.Binding
+	Enter        key.Binding
+	Back         key.Binding
+	New          key.Binding
+	Edit         key.Binding
+	Close        key.Binding
+	Comment      key.Binding
+	Search       key.Binding
+	Refresh      key.Binding
 	PriorityUp   key.Binding
 	PriorityDown key.Binding
 
@@ -107,11 +107,11 @@ func DefaultKeyMap() KeyMap {
 		),
 		PriorityUp: key.NewBinding(
 			key.WithKeys("+", "="),
-			key.WithHelp("+", "lower priority"),
+			key.WithHelp("+", "higher priority"),
 		),
 		PriorityDown: key.NewBinding(
 			key.WithKeys("-", "_"),
-			key.WithHelp("-", "higher priority"),
+			key.WithHelp("-", "lower priority"),
 		),
 		FilterOpen: key.NewBinding(
 			key.WithKeys("o"),
