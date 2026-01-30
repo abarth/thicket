@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"sort"
 
 	"github.com/abarth/thicket/internal/ticket"
 )
@@ -22,28 +23,22 @@ func ReadJSONL(path string) ([]*ticket.Ticket, error) {
 	return tickets, err
 }
 
-// AppendJSONL appends a single ticket to the JSONL file.
+// AppendJSONL appends a single ticket to the JSONL file by rewriting it sorted.
 func AppendJSONL(path string, t *ticket.Ticket) error {
-	file, err := os.OpenFile(path, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	tickets, comments, dependencies, err := ReadAllJSONL(path)
 	if err != nil {
-		return fmt.Errorf("opening tickets file: %w", err)
+		return err
 	}
-	defer file.Close()
-
-	data, err := json.Marshal(t)
-	if err != nil {
-		return fmt.Errorf("encoding ticket: %w", err)
-	}
-
-	if _, err := file.Write(append(data, '\n')); err != nil {
-		return fmt.Errorf("writing ticket: %w", err)
-	}
-
-	return nil
+	tickets = append(tickets, t)
+	return WriteAllJSONL(path, tickets, comments, dependencies)
 }
 
-// WriteJSONL writes all tickets to a JSONL file, replacing existing content.
+// WriteJSONL writes all tickets to a JSONL file, replacing existing content and sorting by ID.
 func WriteJSONL(path string, tickets []*ticket.Ticket) error {
+	sort.Slice(tickets, func(i, j int) bool {
+		return tickets[i].ID < tickets[j].ID
+	})
+
 	file, err := os.Create(path)
 	if err != nil {
 		return fmt.Errorf("creating tickets file: %w", err)
@@ -140,48 +135,39 @@ func ReadAllJSONL(path string) ([]*ticket.Ticket, []*ticket.Comment, []*ticket.D
 	return tickets, comments, dependencies, nil
 }
 
-// AppendComment appends a single comment to the JSONL file.
+// AppendComment appends a single comment to the JSONL file by rewriting it sorted.
 func AppendComment(path string, c *ticket.Comment) error {
-	file, err := os.OpenFile(path, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	tickets, comments, dependencies, err := ReadAllJSONL(path)
 	if err != nil {
-		return fmt.Errorf("opening tickets file: %w", err)
+		return err
 	}
-	defer file.Close()
-
-	data, err := json.Marshal(c)
-	if err != nil {
-		return fmt.Errorf("encoding comment: %w", err)
-	}
-
-	if _, err := file.Write(append(data, '\n')); err != nil {
-		return fmt.Errorf("writing comment: %w", err)
-	}
-
-	return nil
+	comments = append(comments, c)
+	return WriteAllJSONL(path, tickets, comments, dependencies)
 }
 
-// AppendDependency appends a single dependency to the JSONL file.
+// AppendDependency appends a single dependency to the JSONL file by rewriting it sorted.
 func AppendDependency(path string, d *ticket.Dependency) error {
-	file, err := os.OpenFile(path, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	tickets, comments, dependencies, err := ReadAllJSONL(path)
 	if err != nil {
-		return fmt.Errorf("opening tickets file: %w", err)
+		return err
 	}
-	defer file.Close()
-
-	data, err := json.Marshal(d)
-	if err != nil {
-		return fmt.Errorf("encoding dependency: %w", err)
-	}
-
-	if _, err := file.Write(append(data, '\n')); err != nil {
-		return fmt.Errorf("writing dependency: %w", err)
-	}
-
-	return nil
+	dependencies = append(dependencies, d)
+	return WriteAllJSONL(path, tickets, comments, dependencies)
 }
 
-// WriteAllJSONL writes all tickets, comments, and dependencies to a JSONL file, replacing existing content.
+// WriteAllJSONL writes all tickets, comments, and dependencies to a JSONL file, replacing existing content and sorting by ID.
 func WriteAllJSONL(path string, tickets []*ticket.Ticket, comments []*ticket.Comment, dependencies []*ticket.Dependency) error {
+	// Sort everything by ID to reduce merge conflicts
+	sort.Slice(tickets, func(i, j int) bool {
+		return tickets[i].ID < tickets[j].ID
+	})
+	sort.Slice(comments, func(i, j int) bool {
+		return comments[i].ID < comments[j].ID
+	})
+	sort.Slice(dependencies, func(i, j int) bool {
+		return dependencies[i].ID < dependencies[j].ID
+	})
+
 	file, err := os.Create(path)
 	if err != nil {
 		return fmt.Errorf("creating tickets file: %w", err)

@@ -294,3 +294,47 @@ func TestWriteAllJSONL(t *testing.T) {
 		t.Errorf("readComments[0].ID = %q, want TH-cabcdef", readComments[0].ID)
 	}
 }
+
+func TestWriteAllJSONL_Sorting(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "tickets.jsonl")
+
+	now := time.Now().UTC()
+	tickets := []*ticket.Ticket{
+		{ID: "TH-333333", Title: "Third", Created: now, Updated: now},
+		{ID: "TH-111111", Title: "First", Created: now, Updated: now},
+		{ID: "TH-222222", Title: "Second", Created: now, Updated: now},
+	}
+	comments := []*ticket.Comment{
+		{ID: "TH-c33333", TicketID: "TH-333333", Content: "Third comment", Created: now},
+		{ID: "TH-c11111", TicketID: "TH-111111", Content: "First comment", Created: now},
+	}
+	dependencies := []*ticket.Dependency{
+		{ID: "TH-d22222", FromTicketID: "TH-222222", ToTicketID: "TH-111111", Type: ticket.DependencyBlockedBy, Created: now},
+		{ID: "TH-d11111", FromTicketID: "TH-111111", ToTicketID: "TH-333333", Type: ticket.DependencyCreatedFrom, Created: now},
+	}
+
+	if err := WriteAllJSONL(path, tickets, comments, dependencies); err != nil {
+		t.Fatalf("WriteAllJSONL() error = %v", err)
+	}
+
+	readTickets, readComments, readDeps, err := ReadAllJSONL(path)
+	if err != nil {
+		t.Fatalf("ReadAllJSONL() error = %v", err)
+	}
+
+	// Verify tickets order
+	if readTickets[0].ID != "TH-111111" || readTickets[1].ID != "TH-222222" || readTickets[2].ID != "TH-333333" {
+		t.Errorf("Tickets not sorted: %s, %s, %s", readTickets[0].ID, readTickets[1].ID, readTickets[2].ID)
+	}
+
+	// Verify comments order
+	if readComments[0].ID != "TH-c11111" || readComments[1].ID != "TH-c33333" {
+		t.Errorf("Comments not sorted: %s, %s", readComments[0].ID, readComments[1].ID)
+	}
+
+	// Verify dependencies order
+	if readDeps[0].ID != "TH-d11111" || readDeps[1].ID != "TH-d22222" {
+		t.Errorf("Dependencies not sorted: %s, %s", readDeps[0].ID, readDeps[1].ID)
+	}
+}
