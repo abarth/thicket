@@ -1,40 +1,15 @@
 ---
-description: Crank workflow for iterating on Thicket
+description: Turn the crank with Thicket
 ---
 
-Follow these steps to work on Thicket using its own issue tracking system.
+Your goal is to improve the project by resolving tickets and discovering additional work for future agents.
 
-// turbo
-1. Show the next high-priority ticket:
+1. Work on the ticket described by `thicket ready`.
+2. When resolved, `thicket close <CURRENT_TICKET_ID>`.
+3. Think of additional work and create tickets for future agents:
    ```bash
-   ./thicket ready
+   thicket add --title "Brief descriptive title" --description "Detailed context" --priority=<N> --created-from <CURRENT_TICKET_ID>
    ```
+4. Commit your changes.
 
-2. Implement the changes requested in the ticket. While working, if you discover new problems or potential improvements, log them as new tickets:
-   ```bash
-   ./thicket add --title "Brief descriptive title" --description "Detailed context" --created-from <CURRENT_TICKET_ID>
-   ```
-
-3. Document your progress or findings using comments:
-   ```bash
-   ./thicket comment <CURRENT_TICKET_ID> "Describe your progress or technical discovery"
-   ```
-
-4. Verify your changes do not introduce regressions:
-   ```bash
-   go test ./...
-   ```
-
-5. Once the task is complete and verified, close the ticket:
-   ```bash
-   ./thicket close <CURRENT_TICKET_ID>
-   ```
-
-6. Final thought: Before finishing, consider if any follow-up tasks are needed and create tickets for them:
-   ```bash
-   ./thicket add --title "Brief descriptive title" --description "Detailed context" --created-from <CURRENT_TICKET_ID>
-   ```
-
-7. Commit your changes using git.
-
-**CRITICAL**: NEVER edit `.thicket/tickets.jsonl` directly. Always use the `./thicket` CLI.
+**CRITICAL**: NEVER edit `.thicket/tickets.jsonl` directly. Always use the `thicket` CLI.
