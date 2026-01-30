@@ -6,46 +6,26 @@ import "fmt"
 func Quickstart(args []string) error {
 	fmt.Print(`# Thicket Quickstart for Coding Agents
 
-Thicket is a lightweight issue tracker designed to help you manage your work.
-Use it to track tasks, bugs, and features as you work on this project.
-Coding agents should use the --json flag for machine-readable output.
+Your goal is to improve the project by resolving tickets and discovering additional work for future agents.
 
-## WORKFLOW
+## Workflow
 
-1. Get the next ticket to work on (shows full details):
-   thicket ready
+1. Work on the ticket described by "thicket ready".
+2. When resolved, run "thicket close <CURRENT_TICKET_ID>".
+3. Think of additional work and create tickets for future agents:
+   thicket add --title "Brief descriptive title" --description "Detailed context" --priority=<N> --type=<TYPE> --created-from <CURRENT_TICKET_ID>
+4. Commit your changes.
 
-2. As you work on tickets, find additional work and create new tickets:
-   thicket add --json --title "Refactor later" --description "Details here" --created-from TH-abc123
+## Commands
 
-3. Add comments to track progress:
-   thicket comment --json TH-abc123 "Found root cause in auth.go:142"
-   thicket comment --json TH-abc123 "Fix implemented, tests passing"
+- thicket ready
+- thicket close <TICKET_ID>
+- thicket add --title <TITLE> --description <DESC> --type <TYPE> --priority <N> [--label <LABEL>...] [--blocks <ID>] [--blocked-by <ID>] [--created-from <ID>]
+- thicket show <TICKET_ID>
+- thicket comment <TICKET_ID> "Comment text"
+- thicket list [--status <STATUS>] [--label <LABEL>]
 
-4. Close tickets when completed:
-   thicket close --json TH-abc123
-
-5. Think about what additional work should be done and then file tickets for
-   that work.
-
-## Priority guidelines:
-
-  0 = Critical, blocking other work
-  1 = High priority, do soon
-  2 = Normal priority
-  3+ = Lower priority, can wait
-
-## BEST PRACTICES
-
-- **NEVER read or edit .thicket/tickets.jsonl directly.** Always use the CLI.
-- Practively discover additional work as you go and create tickets for it
-- Use descriptive titles that explain WHAT needs to be done
-- Add descriptions for complex issues to capture context
-- Add comments to document your progress and findings
-- Close tickets promptly when work is complete
-- Check 'thicket ready' at the start of each session
-
-For more details, see AGENTS.md in the project root.
+**CRITICAL**: NEVER edit .thicket/tickets.jsonl directly. Always use the thicket CLI.
 `)
 	return nil
 }
