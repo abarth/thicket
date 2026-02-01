@@ -79,14 +79,34 @@ All commands support `--json` for machine-readable output. For the full CLI refe
 
 ## Project Structure
 
+When you run `thicket init`, it creates the following structure:
+
 ```
 your-project/
-└── .thicket/
-    ├── config.json      # Project configuration
-    ├── tickets.jsonl    # Ticket data (git-tracked)
-    ├── cache.db         # SQLite cache (git-ignored)
-    └── .gitignore       # Ignores cache.db
+├── .thicket/
+│   ├── config.json      # Project configuration
+│   ├── tickets.jsonl    # Ticket data (git-tracked)
+│   ├── cache.db         # SQLite cache (git-ignored)
+│   └── .gitignore       # Ignores cache.db
+├── .agent/
+│   └── workflows/
+│       └── crank.md     # Workflow for coding agents
+└── .claude/
+    └── commands/
+        └── crank.md     # Symlink to .agent/workflows/crank.md
 ```
+
+The `.agent/workflows/crank.md` file contains the workflow instructions that guide coding agents through the ticket lifecycle. The `.claude/commands/crank.md` symlink enables the `/crank` command in Claude Code.
+
+## Using the /crank Command
+
+Once initialized, you can use the `/crank` command in Claude Code or Antigravity to start working on tickets:
+
+```
+/crank
+```
+
+This command instructs the agent to work on the highest priority ticket and to create more tickets for future agents.
 
 ## For Coding Agents
 

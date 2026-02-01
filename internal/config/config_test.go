@@ -167,6 +167,126 @@ func TestFindRoot_NotInitialized(t *testing.T) {
 	}
 }
 
+func TestWorkflowPaths(t *testing.T) {
+	workflowPath, symlinkPath := WorkflowPaths("/project")
+
+	expectedWorkflow := "/project/.agent/workflows/crank.md"
+	expectedSymlink := "/project/.claude/commands/crank.md"
+
+	if workflowPath != expectedWorkflow {
+		t.Errorf("workflowPath = %q, want %q", workflowPath, expectedWorkflow)
+	}
+	if symlinkPath != expectedSymlink {
+		t.Errorf("symlinkPath = %q, want %q", symlinkPath, expectedSymlink)
+	}
+}
+
+func TestWorkflowFilesExist(t *testing.T) {
+	dir := t.TempDir()
+
+	// Initially no files exist
+	existing := WorkflowFilesExist(dir)
+	if len(existing) != 0 {
+		t.Errorf("expected no existing files, got %v", existing)
+	}
+
+	// Create workflow file
+	workflowPath, _ := WorkflowPaths(dir)
+	if err := os.MkdirAll(filepath.Dir(workflowPath), 0755); err != nil {
+		t.Fatalf("failed to create dir: %v", err)
+	}
+	if err := os.WriteFile(workflowPath, []byte("test"), 0644); err != nil {
+		t.Fatalf("failed to create file: %v", err)
+	}
+
+	existing = WorkflowFilesExist(dir)
+	if len(existing) != 1 {
+		t.Errorf("expected 1 existing file, got %v", existing)
+	}
+}
+
+func TestSetupWorkflowFiles(t *testing.T) {
+	dir := t.TempDir()
+
+	if err := SetupWorkflowFiles(dir); err != nil {
+		t.Fatalf("SetupWorkflowFiles() error = %v", err)
+	}
+
+	workflowPath, symlinkPath := WorkflowPaths(dir)
+
+	// Check workflow file was created
+	data, err := os.ReadFile(workflowPath)
+	if err != nil {
+		t.Fatalf("Failed to read workflow file: %v", err)
+	}
+	if string(data) != CrankWorkflowContent {
+		t.Errorf("Workflow content mismatch")
+	}
+
+	// Check symlink was created
+	linkTarget, err := os.Readlink(symlinkPath)
+	if err != nil {
+		t.Fatalf("Failed to read symlink: %v", err)
+	}
+
+	expectedTarget := "../../.agent/workflows/crank.md"
+	if linkTarget != expectedTarget {
+		t.Errorf("Symlink target = %q, want %q", linkTarget, expectedTarget)
+	}
+
+	// Verify symlink works (can read through it)
+	symlinkData, err := os.ReadFile(symlinkPath)
+	if err != nil {
+		t.Fatalf("Failed to read through symlink: %v", err)
+	}
+	if string(symlinkData) != CrankWorkflowContent {
+		t.Errorf("Symlink content mismatch")
+	}
+}
+
+func TestSetupWorkflowFiles_Overwrite(t *testing.T) {
+	dir := t.TempDir()
+
+	workflowPath, symlinkPath := WorkflowPaths(dir)
+
+	// Create existing files
+	if err := os.MkdirAll(filepath.Dir(workflowPath), 0755); err != nil {
+		t.Fatalf("failed to create dir: %v", err)
+	}
+	if err := os.WriteFile(workflowPath, []byte("old content"), 0644); err != nil {
+		t.Fatalf("failed to create file: %v", err)
+	}
+	if err := os.MkdirAll(filepath.Dir(symlinkPath), 0755); err != nil {
+		t.Fatalf("failed to create dir: %v", err)
+	}
+	if err := os.WriteFile(symlinkPath, []byte("old symlink"), 0644); err != nil {
+		t.Fatalf("failed to create file: %v", err)
+	}
+
+	// SetupWorkflowFiles should overwrite
+	if err := SetupWorkflowFiles(dir); err != nil {
+		t.Fatalf("SetupWorkflowFiles() error = %v", err)
+	}
+
+	// Check workflow file was updated
+	data, err := os.ReadFile(workflowPath)
+	if err != nil {
+		t.Fatalf("Failed to read workflow file: %v", err)
+	}
+	if string(data) != CrankWorkflowContent {
+		t.Errorf("Workflow content not updated")
+	}
+
+	// Check symlink was created (replacing regular file)
+	linkTarget, err := os.Readlink(symlinkPath)
+	if err != nil {
+		t.Fatalf("Failed to read symlink: %v", err)
+	}
+	if linkTarget != "../../.agent/workflows/crank.md" {
+		t.Errorf("Symlink target = %q, want ../../.agent/workflows/crank.md", linkTarget)
+	}
+}
+
 func TestTHICKET_DIR(t *testing.T) {
 	// Reset global state after test
 	oldOverride := dataDirOverride

@@ -33,6 +33,12 @@ const (
 	ConfigFile  = "config.json"
 	TicketsFile = "tickets.jsonl"
 	CacheFile   = "cache.db"
+
+	// Workflow paths
+	WorkflowDir     = ".agent/workflows"
+	WorkflowFile    = "crank.md"
+	CommandsDir     = ".claude/commands"
+	CommandsSymlink = "crank.md"
 )
 
 var (
@@ -40,6 +46,24 @@ var (
 	ErrAlreadyInit     = errors.New("thicket already initialized in this directory")
 	ErrNoProjectCode   = errors.New("project code is required")
 )
+
+// CrankWorkflowContent is the content of the crank workflow file.
+const CrankWorkflowContent = `---
+description: Turn the crank with Thicket
+---
+
+Your goal is to improve the project by resolving tickets and discovering additional work for future agents.
+
+1. Work on the ticket described by ` + "`thicket ready`" + `.
+2. When resolved, run ` + "`thicket close <CURRENT_TICKET_ID>`" + `.
+3. Think of additional work and create tickets for future agents:
+   ` + "```bash" + `
+   thicket add --title "Brief descriptive title" --description "Detailed context" --priority=<N> --type=<TYPE> --created-from <CURRENT_TICKET_ID>
+   ` + "```" + `
+4. Commit your changes.
+
+**CRITICAL**: NEVER edit ` + "`.thicket/tickets.jsonl`" + ` directly. Always use the ` + "`thicket`" + ` CLI.
+`
 
 // Config represents the Thicket project configuration.
 type Config struct {
@@ -163,6 +187,68 @@ func Init(root, projectCode string) error {
 	gitignore := filepath.Join(paths.Dir, ".gitignore")
 	if err := os.WriteFile(gitignore, []byte("cache.db\n"), 0644); err != nil {
 		return fmt.Errorf("creating .gitignore: %w", err)
+	}
+
+	return nil
+}
+
+// WorkflowPaths returns the paths for the workflow files.
+func WorkflowPaths(root string) (workflowPath, symlinkPath string) {
+	workflowPath = filepath.Join(root, WorkflowDir, WorkflowFile)
+	symlinkPath = filepath.Join(root, CommandsDir, CommandsSymlink)
+	return
+}
+
+// WorkflowFilesExist checks if any workflow files already exist.
+// Returns a list of existing file paths.
+func WorkflowFilesExist(root string) []string {
+	workflowPath, symlinkPath := WorkflowPaths(root)
+	var existing []string
+
+	if _, err := os.Lstat(workflowPath); err == nil {
+		existing = append(existing, workflowPath)
+	}
+	if _, err := os.Lstat(symlinkPath); err == nil {
+		existing = append(existing, symlinkPath)
+	}
+
+	return existing
+}
+
+// SetupWorkflowFiles creates the workflow command files.
+// It creates .agent/workflows/crank.md with the crank workflow content
+// and .claude/commands/crank.md as a symlink to it.
+func SetupWorkflowFiles(root string) error {
+	workflowPath, symlinkPath := WorkflowPaths(root)
+
+	// Create .agent/workflows directory
+	workflowDir := filepath.Dir(workflowPath)
+	if err := os.MkdirAll(workflowDir, 0755); err != nil {
+		return fmt.Errorf("creating workflow directory: %w", err)
+	}
+
+	// Write crank.md
+	if err := os.WriteFile(workflowPath, []byte(CrankWorkflowContent), 0644); err != nil {
+		return fmt.Errorf("writing workflow file: %w", err)
+	}
+
+	// Create .claude/commands directory
+	commandsDir := filepath.Dir(symlinkPath)
+	if err := os.MkdirAll(commandsDir, 0755); err != nil {
+		return fmt.Errorf("creating commands directory: %w", err)
+	}
+
+	// Remove existing symlink if present (in case of overwrite)
+	os.Remove(symlinkPath)
+
+	// Create relative symlink from .claude/commands/crank.md to ../../.agent/workflows/crank.md
+	relPath, err := filepath.Rel(commandsDir, workflowPath)
+	if err != nil {
+		return fmt.Errorf("calculating relative path: %w", err)
+	}
+
+	if err := os.Symlink(relPath, symlinkPath); err != nil {
+		return fmt.Errorf("creating symlink: %w", err)
 	}
 
 	return nil

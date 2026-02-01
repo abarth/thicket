@@ -58,11 +58,20 @@ thicket tui
 Initialize a new Thicket project in the current directory.
 
 ```bash
-thicket init --project <CODE>
+thicket init --project <CODE> [--skip-workflow] [--force]
 ```
 
 **Flags:**
 - `--project` (required): Two-letter project code (e.g., TH, BG, FX)
+- `--skip-workflow`: Skip creating workflow command files (`.agent/workflows/crank.md` and `.claude/commands/crank.md`)
+- `--force`: Overwrite existing workflow files without prompting
+
+**What it creates:**
+- `.thicket/` directory with configuration and ticket storage
+- `.agent/workflows/crank.md` - Workflow file for coding agents
+- `.claude/commands/crank.md` - Symlink enabling the `/crank` command in Claude Code
+
+If workflow files already exist, you will be prompted to confirm overwriting them (unless `--force` is used).
 
 ### `thicket add`
 
