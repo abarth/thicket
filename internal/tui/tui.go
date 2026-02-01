@@ -226,6 +226,20 @@ func (m Model) View() string {
 	b.WriteString("\n")
 	b.WriteString(m.renderHelpBar())
 
+	// Help overlay (rendered on top if active)
+	if m.showHelp {
+		var sections []helpSection
+		switch m.view {
+		case viewList:
+			sections = ListFullHelp()
+		case viewDetail:
+			sections = DetailFullHelp()
+		case viewCreate, viewEdit:
+			sections = FormFullHelp()
+		}
+		return RenderHelp(sections, m.width, m.height)
+	}
+
 	return b.String()
 }
 

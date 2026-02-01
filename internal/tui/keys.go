@@ -168,37 +168,32 @@ func DefaultKeyMap() KeyMap {
 	}
 }
 
-// ListHelp returns help text for list view.
+// ListHelp returns help text for list view (abbreviated).
 func ListHelp() string {
 	return helpKeyStyle.Render("j/k") + helpStyle.Render(" nav  ") +
 		helpKeyStyle.Render("enter") + helpStyle.Render(" view  ") +
 		helpKeyStyle.Render("n") + helpStyle.Render(" new  ") +
 		helpKeyStyle.Render("e") + helpStyle.Render(" edit  ") +
-		helpKeyStyle.Render("c") + helpStyle.Render(" close  ") +
-		helpKeyStyle.Render("+/-") + helpStyle.Render(" prio  ") +
-		helpKeyStyle.Render("b/f/t/E/C") + helpStyle.Render(" type  ") +
-		helpKeyStyle.Render("o/x/i/a") + helpStyle.Render(" filter  ") +
 		helpKeyStyle.Render("/") + helpStyle.Render(" search  ") +
+		helpKeyStyle.Render("?") + helpStyle.Render(" help  ") +
 		helpKeyStyle.Render("q") + helpStyle.Render(" quit")
 }
 
-// DetailHelp returns help text for detail view.
+// DetailHelp returns help text for detail view (abbreviated).
 func DetailHelp() string {
 	return helpKeyStyle.Render("esc") + helpStyle.Render(" back  ") +
 		helpKeyStyle.Render("e") + helpStyle.Render(" edit  ") +
 		helpKeyStyle.Render("c") + helpStyle.Render(" close  ") +
 		helpKeyStyle.Render("m") + helpStyle.Render(" comment  ") +
-		helpKeyStyle.Render("+/-") + helpStyle.Render(" prio  ") +
-		helpKeyStyle.Render("b/f/t/E/C") + helpStyle.Render(" type  ") +
 		helpKeyStyle.Render("j/k") + helpStyle.Render(" scroll  ") +
-		helpKeyStyle.Render("q") + helpStyle.Render(" quit")
+		helpKeyStyle.Render("?") + helpStyle.Render(" help")
 }
 
-// FormHelp returns help text for form view.
+// FormHelp returns help text for form view (abbreviated).
 func FormHelp() string {
 	return helpKeyStyle.Render("tab") + helpStyle.Render(" next  ") +
-		helpKeyStyle.Render("shift+tab") + helpStyle.Render(" prev  ") +
 		helpKeyStyle.Render("←/→") + helpStyle.Render(" select  ") +
 		helpKeyStyle.Render("ctrl+s") + helpStyle.Render(" save  ") +
-		helpKeyStyle.Render("esc") + helpStyle.Render(" cancel")
+		helpKeyStyle.Render("esc") + helpStyle.Render(" cancel  ") +
+		helpKeyStyle.Render("?") + helpStyle.Render(" help")
 }
