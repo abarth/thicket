@@ -82,8 +82,3 @@ type CommentSavedMsg struct {
 	TicketID string
 }
 
-// ConfirmCloseMsg is sent to confirm closing a ticket.
-type ConfirmCloseMsg struct {
-	TicketID string
-	Title    string
-}

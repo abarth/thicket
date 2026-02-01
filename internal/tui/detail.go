@@ -31,7 +31,7 @@ type DetailModel struct {
 	// Comment input mode
 	commenting   bool
 	commentInput textarea.Model
-	confirmClose bool
+	closePrompt  PromptModel
 
 	searchQuery string
 }
@@ -48,6 +48,7 @@ func NewDetailModel(store *storage.Store) DetailModel {
 		store:        store,
 		keys:         DefaultKeyMap(),
 		commentInput: ti,
+		closePrompt:  NewPrompt(),
 	}
 }
 
@@ -100,19 +101,15 @@ func (m DetailModel) LoadTicket() tea.Cmd {
 func (m DetailModel) Update(msg tea.Msg) (DetailModel, tea.Cmd) {
 	var cmds []tea.Cmd
 
-	if m.confirmClose {
-		switch msg := msg.(type) {
-		case tea.KeyMsg:
-			switch msg.String() {
-			case "y", "Y", "enter":
-				m.confirmClose = false
-				return m, m.closeTicket()
-			case "n", "N", "esc":
-				m.confirmClose = false
-				return m, nil
-			}
+	if m.closePrompt.Active() {
+		switch m.closePrompt.Update(msg) {
+		case PromptConfirmed:
+			return m, m.closeTicket()
+		case PromptCancelled:
+			return m, nil
+		case PromptPending:
+			return m, nil
 		}
-		return m, nil
 	}
 
 	switch msg := msg.(type) {
@@ -175,7 +172,7 @@ func (m DetailModel) Update(msg tea.Msg) (DetailModel, tea.Cmd) {
 			}
 		case key.Matches(msg, m.keys.Close):
 			if m.ticket != nil && m.ticket.Status == ticket.StatusOpen {
-				m.confirmClose = true
+				m.closePrompt.Show("Close this ticket? (y/n)", "")
 				return m, nil
 			}
 		case key.Matches(msg, m.keys.Comment):
@@ -400,9 +397,9 @@ func (m DetailModel) View() string {
 	}
 
 	// Close confirmation
-	if m.confirmClose {
+	if m.closePrompt.Active() {
 		b.WriteString("\n")
-		b.WriteString(promptStyle.Render("Close this ticket? (y/n)"))
+		b.WriteString(m.closePrompt.View())
 		b.WriteString("\n")
 	}
 

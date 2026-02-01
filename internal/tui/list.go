@@ -20,21 +20,21 @@ type FilterState struct {
 
 // ListModel handles the ticket list view.
 type ListModel struct {
-	store          *storage.Store
-	allTickets     []*ticket.Ticket
-	allComments    []*ticket.Comment
-	tickets        []*ticket.Ticket
-	cursor         int
-	offset         int // scroll offset
-	width          int
-	height         int
-	keys           KeyMap
-	filters        FilterState
-	loading        bool
-	err            error
-	isSearching    bool
-	searchInput    textinput.Model
-	pendingCloseID string
+	store       *storage.Store
+	allTickets  []*ticket.Ticket
+	allComments []*ticket.Comment
+	tickets     []*ticket.Ticket
+	cursor      int
+	offset      int // scroll offset
+	width       int
+	height      int
+	keys        KeyMap
+	filters     FilterState
+	loading     bool
+	err         error
+	isSearching bool
+	searchInput textinput.Model
+	closePrompt PromptModel
 }
 
 // NewListModel creates a new list model.
@@ -54,6 +54,7 @@ func NewListModel(store *storage.Store) ListModel {
 			Status: &status,
 		},
 		searchInput: ti,
+		closePrompt: NewPrompt(),
 	}
 }
 
@@ -158,20 +159,16 @@ func (m ListModel) Update(msg tea.Msg) (ListModel, tea.Cmd) {
 		return m, cmd
 	}
 
-	if m.pendingCloseID != "" {
-		switch msg := msg.(type) {
-		case tea.KeyMsg:
-			switch msg.String() {
-			case "y", "Y", "enter":
-				id := m.pendingCloseID
-				m.pendingCloseID = ""
-				return m, m.closeTicket(id)
-			case "n", "N", "esc":
-				m.pendingCloseID = ""
-				return m, nil
-			}
+	if m.closePrompt.Active() {
+		switch m.closePrompt.Update(msg) {
+		case PromptConfirmed:
+			id := m.closePrompt.Context()
+			return m, m.closeTicket(id)
+		case PromptCancelled:
+			return m, nil
+		case PromptPending:
+			return m, nil
 		}
-		return m, nil
 	}
 
 	switch msg := msg.(type) {
@@ -263,7 +260,7 @@ func (m ListModel) Update(msg tea.Msg) (ListModel, tea.Cmd) {
 			if len(m.tickets) > 0 && m.cursor < len(m.tickets) {
 				t := m.tickets[m.cursor]
 				if t.Status == ticket.StatusOpen {
-					m.pendingCloseID = t.ID
+					m.closePrompt.Show(fmt.Sprintf("Close ticket %s? (y/n)", t.ID), t.ID)
 					return m, nil
 				}
 			}
@@ -403,7 +400,7 @@ func (m ListModel) visibleRows() int {
 	if m.isSearching {
 		rows -= 2 // Account for search input and spacer
 	}
-	if m.pendingCloseID != "" {
+	if m.closePrompt.Active() {
 		rows -= 2 // Account for prompt and spacer
 	}
 	if rows < 1 {
@@ -429,8 +426,8 @@ func (m ListModel) View() string {
 		b.WriteString("\n\n")
 	}
 
-	if m.pendingCloseID != "" {
-		b.WriteString(promptStyle.Render(fmt.Sprintf("Close ticket %s? (y/n)", m.pendingCloseID)))
+	if m.closePrompt.Active() {
+		b.WriteString(m.closePrompt.View())
 		b.WriteString("\n\n")
 	}
 

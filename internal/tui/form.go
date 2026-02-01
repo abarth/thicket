@@ -62,18 +62,19 @@ type FormModel struct {
 	errors map[formField]string
 
 	// Confirmation
-	initialValues     map[formField]string
-	confirmingDiscard bool
+	initialValues  map[formField]string
+	discardPrompt  PromptModel
 }
 
 // NewFormModel creates a new form model.
 func NewFormModel(store *storage.Store, projectCode string, t *ticket.Ticket) FormModel {
 	m := FormModel{
-		store:       store,
-		projectCode: projectCode,
-		isNew:       t == nil,
-		keys:        DefaultKeyMap(),
-		errors:      make(map[formField]string),
+		store:         store,
+		projectCode:   projectCode,
+		isNew:         t == nil,
+		keys:          DefaultKeyMap(),
+		errors:        make(map[formField]string),
+		discardPrompt: NewPrompt(),
 	}
 
 	// Initialize text inputs
@@ -214,19 +215,17 @@ func (m *FormModel) prevField() {
 func (m FormModel) Update(msg tea.Msg) (FormModel, tea.Cmd) {
 	var cmds []tea.Cmd
 
-	if m.confirmingDiscard {
-		if msg, ok := msg.(tea.KeyMsg); ok {
-			switch msg.String() {
-			case "y", "Y":
-				return m, func() tea.Msg {
-					return BackToListMsg{}
-				}
-			default:
-				m.confirmingDiscard = false
-				return m, nil
+	if m.discardPrompt.Active() {
+		switch m.discardPrompt.Update(msg) {
+		case PromptConfirmed:
+			return m, func() tea.Msg {
+				return BackToListMsg{}
 			}
+		case PromptCancelled:
+			return m, nil
+		case PromptPending:
+			return m, nil
 		}
-		return m, nil
 	}
 
 	switch msg := msg.(type) {
@@ -234,7 +233,7 @@ func (m FormModel) Update(msg tea.Msg) (FormModel, tea.Cmd) {
 		switch {
 		case key.Matches(msg, m.keys.Cancel):
 			if m.isDirty() {
-				m.confirmingDiscard = true
+				m.discardPrompt.Show("Discard changes? (y/n)", "")
 				return m, nil
 			}
 			return m, func() tea.Msg {
@@ -414,8 +413,8 @@ func (m FormModel) View() string {
 	b.WriteString("\n")
 	b.WriteString(m.renderField("Labels", m.labels, fieldLabels))
 
-	if m.confirmingDiscard {
-		b.WriteString("\n\n  " + errorMsgStyle.Render("Discard changes? (y/n)"))
+	if m.discardPrompt.Active() {
+		b.WriteString("\n\n  " + m.discardPrompt.View())
 	}
 
 	return b.String()
