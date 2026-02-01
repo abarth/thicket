@@ -160,9 +160,10 @@ func (m ListModel) Update(msg tea.Msg) (ListModel, tea.Cmd) {
 	}
 
 	if m.closePrompt.Active() {
+		// Get context before Update, which may clear it on confirm/cancel
+		id := m.closePrompt.Context()
 		switch m.closePrompt.Update(msg) {
 		case PromptConfirmed:
-			id := m.closePrompt.Context()
 			return m, m.closeTicket(id)
 		case PromptCancelled:
 			return m, nil
@@ -340,6 +341,9 @@ func (m ListModel) closeTicket(id string) tea.Cmd {
 		t, err := m.store.Get(id)
 		if err != nil {
 			return ErrorMsg{Err: err}
+		}
+		if t == nil {
+			return ErrorMsg{Err: fmt.Errorf("ticket %s not found", id)}
 		}
 		t.Status = ticket.StatusClosed
 		if err := m.store.Update(t); err != nil {

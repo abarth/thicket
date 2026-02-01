@@ -232,6 +232,9 @@ func (m DetailModel) closeTicket() tea.Cmd {
 		if err != nil {
 			return ErrorMsg{Err: err}
 		}
+		if t == nil {
+			return ErrorMsg{Err: fmt.Errorf("ticket %s not found", m.ticketID)}
+		}
 		t.Status = ticket.StatusClosed
 		if err := m.store.Update(t); err != nil {
 			return ErrorMsg{Err: err}
