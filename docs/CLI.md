@@ -49,6 +49,7 @@ thicket tui
 | **Form View** | |
 | `Tab` | Next field |
 | `Shift+Tab` | Previous field |
+| `←`/`→` or `h`/`l` | Cycle selector options (type, status, priority) |
 | `Ctrl+S` | Save |
 | `Esc` | Cancel |
 

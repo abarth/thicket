@@ -198,6 +198,7 @@ func DetailHelp() string {
 func FormHelp() string {
 	return helpKeyStyle.Render("tab") + helpStyle.Render(" next  ") +
 		helpKeyStyle.Render("shift+tab") + helpStyle.Render(" prev  ") +
+		helpKeyStyle.Render("←/→") + helpStyle.Render(" select  ") +
 		helpKeyStyle.Render("ctrl+s") + helpStyle.Render(" save  ") +
 		helpKeyStyle.Render("esc") + helpStyle.Render(" cancel")
 }

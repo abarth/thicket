@@ -29,14 +29,12 @@ const (
 	fieldCount
 )
 
-// validTypes are the allowed ticket types.
-var validTypes = map[ticket.Type]bool{
-	ticket.TypeBug:     true,
-	ticket.TypeFeature: true,
-	ticket.TypeTask:    true,
-	ticket.TypeEpic:    true,
-	ticket.TypeCleanup: true,
-}
+// Valid options for selector fields
+var (
+	typeOptions     = []string{"bug", "feature", "task", "epic", "cleanup"}
+	statusOptions   = []string{"open", "closed", "icebox"}
+	priorityOptions = []string{"0", "1", "2", "3", "4", "5"}
+)
 
 // FormModel handles the create/edit ticket form.
 type FormModel struct {
@@ -52,9 +50,9 @@ type FormModel struct {
 	// Form inputs
 	title       textinput.Model
 	description textarea.Model
-	ticketType  textinput.Model
-	status      textinput.Model
-	priority    textinput.Model
+	ticketType  SelectorModel
+	status      SelectorModel
+	priority    SelectorModel
 	assignee    textinput.Model
 	labels      textinput.Model
 
@@ -90,23 +88,9 @@ func NewFormModel(store *storage.Store, projectCode string, t *ticket.Ticket) Fo
 	m.description.SetHeight(5)
 	m.description.ShowLineNumbers = false
 
-	m.ticketType = textinput.New()
-	m.ticketType.Placeholder = "bug, feature, task, epic, cleanup"
-	m.ticketType.PlaceholderStyle = placeholderStyle
-	m.ticketType.CharLimit = 20
-	m.ticketType.Width = 30
-
-	m.priority = textinput.New()
-	m.priority.Placeholder = "0-5 (0=highest)"
-	m.priority.PlaceholderStyle = placeholderStyle
-	m.priority.CharLimit = 1
-	m.priority.Width = 10
-
-	m.status = textinput.New()
-	m.status.Placeholder = "open, closed, icebox"
-	m.status.PlaceholderStyle = placeholderStyle
-	m.status.CharLimit = 20
-	m.status.Width = 30
+	m.ticketType = NewSelector(typeOptions)
+	m.priority = NewSelector(priorityOptions)
+	m.status = NewSelector(statusOptions)
 
 	m.assignee = textinput.New()
 	m.assignee.Placeholder = "Assignee (optional)"
@@ -132,8 +116,8 @@ func NewFormModel(store *storage.Store, projectCode string, t *ticket.Ticket) Fo
 		m.labels.SetValue(strings.Join(t.Labels, ", "))
 	} else {
 		// Defaults for new ticket
-		m.priority.SetValue("2")
 		m.ticketType.SetValue("task")
+		m.priority.SetValue("2")
 		m.status.SetValue("open")
 	}
 
@@ -165,14 +149,16 @@ func (m *FormModel) SetSize(width, height int) {
 }
 
 func (m *FormModel) focusField(f formField) {
-	// Blur all
+	// Blur all text inputs
 	m.title.Blur()
 	m.description.Blur()
+	m.assignee.Blur()
+	m.labels.Blur()
+
+	// Blur all selectors
 	m.ticketType.Blur()
 	m.status.Blur()
 	m.priority.Blur()
-	m.assignee.Blur()
-	m.labels.Blur()
 
 	m.focus = f
 
@@ -258,11 +244,11 @@ func (m FormModel) Update(msg tea.Msg) (FormModel, tea.Cmd) {
 	case fieldDescription:
 		m.description, cmd = m.description.Update(msg)
 	case fieldType:
-		m.ticketType, cmd = m.ticketType.Update(msg)
+		m.ticketType, _ = m.ticketType.Update(msg)
 	case fieldStatus:
-		m.status, cmd = m.status.Update(msg)
+		m.status, _ = m.status.Update(msg)
 	case fieldPriority:
-		m.priority, cmd = m.priority.Update(msg)
+		m.priority, _ = m.priority.Update(msg)
 	case fieldAssignee:
 		m.assignee, cmd = m.assignee.Update(msg)
 	case fieldLabels:
@@ -281,27 +267,8 @@ func (m FormModel) validate() map[formField]string {
 		errors[fieldTitle] = "Title is required"
 	}
 
-	pri := strings.TrimSpace(m.priority.Value())
-	if pri != "" {
-		p, err := strconv.Atoi(pri)
-		if err != nil || p < 0 || p > 5 {
-			errors[fieldPriority] = "Priority must be 0-5"
-		}
-	}
-
-	typ := strings.TrimSpace(m.ticketType.Value())
-	if typ != "" {
-		if !validTypes[ticket.Type(typ)] {
-			errors[fieldType] = "Invalid type"
-		}
-	}
-
-	statusVal := strings.TrimSpace(m.status.Value())
-	if statusVal != "" {
-		if err := ticket.ValidateStatus(ticket.Status(statusVal)); err != nil {
-			errors[fieldStatus] = "Invalid status"
-		}
-	}
+	// No validation needed for type, status, or priority since
+	// selectors only allow valid values
 
 	return errors
 }
@@ -319,16 +286,13 @@ func (m FormModel) save() tea.Cmd {
 
 		title := strings.TrimSpace(m.title.Value())
 		description := strings.TrimSpace(m.description.Value())
-		typ := strings.TrimSpace(m.ticketType.Value())
-		statusVal := strings.TrimSpace(m.status.Value())
-		pri := strings.TrimSpace(m.priority.Value())
 		assignee := strings.TrimSpace(m.assignee.Value())
 		labelsStr := strings.TrimSpace(m.labels.Value())
 
-		priority := 2
-		if pri != "" {
-			priority, _ = strconv.Atoi(pri)
-		}
+		// Get values from selectors
+		issueType := ticket.Type(m.ticketType.Value())
+		issueStatus := ticket.Status(m.status.Value())
+		priority, _ := strconv.Atoi(m.priority.Value())
 
 		var labels []string
 		if labelsStr != "" {
@@ -338,16 +302,6 @@ func (m FormModel) save() tea.Cmd {
 					labels = append(labels, l)
 				}
 			}
-		}
-
-		issueType := ticket.TypeTask
-		if typ != "" {
-			issueType = ticket.Type(typ)
-		}
-
-		issueStatus := ticket.StatusOpen
-		if statusVal != "" {
-			issueStatus = ticket.Status(statusVal)
 		}
 
 		if m.isNew {
@@ -403,11 +357,11 @@ func (m FormModel) View() string {
 	b.WriteString("\n")
 	b.WriteString(m.renderTextArea("Description", m.description, fieldDescription))
 	b.WriteString("\n")
-	b.WriteString(m.renderField("Type", m.ticketType, fieldType))
+	b.WriteString(m.renderSelector("Type", m.ticketType, fieldType))
 	b.WriteString("\n")
-	b.WriteString(m.renderField("Status", m.status, fieldStatus))
+	b.WriteString(m.renderSelector("Status", m.status, fieldStatus))
 	b.WriteString("\n")
-	b.WriteString(m.renderField("Priority", m.priority, fieldPriority))
+	b.WriteString(m.renderSelector("Priority", m.priority, fieldPriority))
 	b.WriteString("\n")
 	b.WriteString(m.renderField("Assignee", m.assignee, fieldAssignee))
 	b.WriteString("\n")
@@ -468,4 +422,11 @@ func (m FormModel) renderTextArea(label string, input textarea.Model, field form
 	}
 
 	return lipgloss.JoinHorizontal(lipgloss.Top, labelText, " ", inputView)
+}
+
+func (m FormModel) renderSelector(label string, selector SelectorModel, field formField) string {
+	style := labelStyle.Copy().Width(14)
+	labelText := style.Render(label + ":")
+
+	return lipgloss.JoinHorizontal(lipgloss.Top, labelText, " ", selector.View())
 }
