@@ -129,6 +129,12 @@ func (m DetailModel) Update(msg tea.Msg) (DetailModel, tea.Cmd) {
 	case CommentSavedMsg:
 		return m, m.LoadTicket()
 
+	case TicketPriorityUpdatedMsg:
+		return m, m.LoadTicket()
+
+	case TicketTypeUpdatedMsg:
+		return m, m.LoadTicket()
+
 	case tea.KeyMsg:
 		// If in commenting mode, handle differently
 		if m.commenting {
