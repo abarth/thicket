@@ -135,6 +135,9 @@ func (m DetailModel) Update(msg tea.Msg) (DetailModel, tea.Cmd) {
 	case TicketTypeUpdatedMsg:
 		return m, m.LoadTicket()
 
+	case TicketClosedMsg:
+		return m, m.LoadTicket()
+
 	case tea.KeyMsg:
 		// If in commenting mode, handle differently
 		if m.commenting {

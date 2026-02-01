@@ -187,6 +187,56 @@ func TestDetailModel_Update_CommentSavedMsg(t *testing.T) {
 	}
 }
 
+func TestDetailModel_Update_TicketClosedMsg(t *testing.T) {
+	store := setupTestStore(t)
+
+	// Create and add a test ticket
+	tk, err := ticket.New("TH", "Test ticket", "Description", ticket.TypeTask, 1, nil, "")
+	if err != nil {
+		t.Fatalf("ticket.New() error = %v", err)
+	}
+	if err := store.Add(tk); err != nil {
+		t.Fatalf("store.Add() error = %v", err)
+	}
+
+	// Create detail model and set ticket
+	m := NewDetailModel(store)
+	m.SetTicketID(tk.ID)
+
+	// Load the ticket first
+	cmd := m.LoadTicket()
+	msg := cmd()
+	m, _ = m.Update(msg)
+
+	if m.ticket == nil {
+		t.Fatal("expected ticket to be loaded")
+	}
+	if m.ticket.Status != ticket.StatusOpen {
+		t.Errorf("expected initial status open, got %s", m.ticket.Status)
+	}
+
+	// Simulate closing ticket in storage
+	tk.Status = ticket.StatusClosed
+	if err := store.Update(tk); err != nil {
+		t.Fatalf("store.Update() error = %v", err)
+	}
+
+	// Send TicketClosedMsg and verify it triggers reload
+	m, reloadCmd := m.Update(TicketClosedMsg{ID: tk.ID})
+
+	if reloadCmd == nil {
+		t.Fatal("expected TicketClosedMsg to return a reload command")
+	}
+
+	// Execute the reload command
+	reloadMsg := reloadCmd()
+	m, _ = m.Update(reloadMsg)
+
+	if m.ticket.Status != ticket.StatusClosed {
+		t.Errorf("expected status to be closed after reload, got %s", m.ticket.Status)
+	}
+}
+
 func TestDetailModel_Update_PriorityKeys(t *testing.T) {
 	store := setupTestStore(t)
 
