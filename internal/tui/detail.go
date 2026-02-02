@@ -286,6 +286,9 @@ func (m DetailModel) updatePriority(newPriority int) tea.Cmd {
 		if err != nil {
 			return ErrorMsg{Err: err}
 		}
+		if t == nil {
+			return ErrorMsg{Err: fmt.Errorf("ticket %s not found", m.ticketID)}
+		}
 		t.Priority = newPriority
 		if err := m.store.Update(t); err != nil {
 			return ErrorMsg{Err: err}
@@ -299,6 +302,9 @@ func (m DetailModel) updateType(newType ticket.Type) tea.Cmd {
 		t, err := m.store.Get(m.ticketID)
 		if err != nil {
 			return ErrorMsg{Err: err}
+		}
+		if t == nil {
+			return ErrorMsg{Err: fmt.Errorf("ticket %s not found", m.ticketID)}
 		}
 		t.Type = newType
 		if err := m.store.Update(t); err != nil {

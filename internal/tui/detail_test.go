@@ -934,3 +934,51 @@ func TestDetailModel_EditTicket(t *testing.T) {
 		t.Errorf("expected ticket ID %s, got %s", tk.ID, editMsg.Ticket.ID)
 	}
 }
+
+func TestDetailModel_UpdatePriority_TicketNotFound(t *testing.T) {
+	store := setupTestStore(t)
+
+	m := NewDetailModel(store)
+	m.SetSize(80, 24)
+	m.SetTicketID("TH-nonexistent")
+
+	// Call updatePriority with a non-existent ticket ID
+	cmd := m.updatePriority(3)
+	resultMsg := cmd()
+
+	errMsg, ok := resultMsg.(ErrorMsg)
+	if !ok {
+		t.Fatalf("expected ErrorMsg, got %T", resultMsg)
+	}
+
+	if errMsg.Err == nil {
+		t.Error("expected error to be non-nil")
+	}
+	if !strings.Contains(errMsg.Err.Error(), "not found") {
+		t.Errorf("expected 'not found' error, got: %v", errMsg.Err)
+	}
+}
+
+func TestDetailModel_UpdateType_TicketNotFound(t *testing.T) {
+	store := setupTestStore(t)
+
+	m := NewDetailModel(store)
+	m.SetSize(80, 24)
+	m.SetTicketID("TH-nonexistent")
+
+	// Call updateType with a non-existent ticket ID
+	cmd := m.updateType(ticket.TypeBug)
+	resultMsg := cmd()
+
+	errMsg, ok := resultMsg.(ErrorMsg)
+	if !ok {
+		t.Fatalf("expected ErrorMsg, got %T", resultMsg)
+	}
+
+	if errMsg.Err == nil {
+		t.Error("expected error to be non-nil")
+	}
+	if !strings.Contains(errMsg.Err.Error(), "not found") {
+		t.Errorf("expected 'not found' error, got: %v", errMsg.Err)
+	}
+}

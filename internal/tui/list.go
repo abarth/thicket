@@ -389,6 +389,9 @@ func (m ListModel) updatePriority(id string, newPriority int) tea.Cmd {
 		if err != nil {
 			return ErrorMsg{Err: err}
 		}
+		if t == nil {
+			return ErrorMsg{Err: fmt.Errorf("ticket %s not found", id)}
+		}
 		t.Priority = newPriority
 		if err := m.store.Update(t); err != nil {
 			return ErrorMsg{Err: err}
@@ -402,6 +405,9 @@ func (m ListModel) updateType(id string, newType ticket.Type) tea.Cmd {
 		t, err := m.store.Get(id)
 		if err != nil {
 			return ErrorMsg{Err: err}
+		}
+		if t == nil {
+			return ErrorMsg{Err: fmt.Errorf("ticket %s not found", id)}
 		}
 		t.Type = newType
 		if err := m.store.Update(t); err != nil {
