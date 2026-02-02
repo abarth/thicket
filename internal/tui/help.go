@@ -1,6 +1,7 @@
 package tui
 
 import (
+	"fmt"
 	"strings"
 
 	"github.com/charmbracelet/lipgloss"
@@ -8,8 +9,9 @@ import (
 
 // HelpModel provides a help overlay for displaying keyboard shortcuts.
 type HelpModel struct {
-	width  int
-	height int
+	width   int
+	height  int
+	scrollY int
 }
 
 // NewHelp creates a new help model.
@@ -21,6 +23,34 @@ func NewHelp() HelpModel {
 func (h *HelpModel) SetSize(width, height int) {
 	h.width = width
 	h.height = height
+}
+
+// ScrollUp scrolls the help content up by one line.
+func (h *HelpModel) ScrollUp() {
+	if h.scrollY > 0 {
+		h.scrollY--
+	}
+}
+
+// ScrollDown scrolls the help content down by one line.
+func (h *HelpModel) ScrollDown(contentHeight, visibleHeight int) {
+	maxScroll := contentHeight - visibleHeight
+	if maxScroll < 0 {
+		maxScroll = 0
+	}
+	if h.scrollY < maxScroll {
+		h.scrollY++
+	}
+}
+
+// ResetScroll resets the scroll position to the top.
+func (h *HelpModel) ResetScroll() {
+	h.scrollY = 0
+}
+
+// ScrollY returns the current scroll position.
+func (h *HelpModel) ScrollY() int {
+	return h.scrollY
 }
 
 // helpEntry represents a single key binding with description.
@@ -187,35 +217,131 @@ var (
 
 // RenderHelp renders the help overlay for the given sections.
 func RenderHelp(sections []helpSection, width, height int) string {
-	var b strings.Builder
+	return RenderHelpWithScroll(sections, width, height, 0)
+}
 
-	b.WriteString(helpTitleStyle.Render("Keyboard Shortcuts"))
-	b.WriteString("\n")
+// RenderHelpWithScroll renders the help overlay with scroll support.
+func RenderHelpWithScroll(sections []helpSection, width, height, scrollY int) string {
+	// Build all content lines
+	var lines []string
+
+	lines = append(lines, helpTitleStyle.Render("Keyboard Shortcuts"))
 
 	for _, section := range sections {
-		b.WriteString(helpSectionTitleStyle.Render(section.title))
-		b.WriteString("\n")
+		lines = append(lines, helpSectionTitleStyle.Render(section.title))
 
 		for _, entry := range section.entries {
 			line := helpKeyColumnStyle.Render(entry.key) + helpDescStyle.Render(entry.desc)
-			b.WriteString(line)
-			b.WriteString("\n")
+			lines = append(lines, line)
 		}
 	}
 
-	b.WriteString("\n")
-	b.WriteString(helpStyle.Render("Press ? to close"))
+	lines = append(lines, "")
+
+	// Use full width with small margin for border
+	overlayWidth := width - 4
+	if overlayWidth < 20 {
+		overlayWidth = 20
+	}
+
+	// Calculate available height inside the overlay (account for border and padding)
+	// Border: 2 lines (top + bottom), Padding: 2 lines (top + bottom from Padding(1, 2))
+	overlayPadding := 4
+	availableHeight := height - overlayPadding
+	if availableHeight < 3 {
+		availableHeight = 3 // Minimum to show something
+	}
+
+	// Calculate content height needed
+	contentHeight := len(lines) + 1 // +1 for footer
+
+	// Determine if scrolling is needed
+	needsScroll := contentHeight > availableHeight
+
+	// Clamp scroll position
+	maxScroll := contentHeight - availableHeight
+	if maxScroll < 0 {
+		maxScroll = 0
+	}
+	if scrollY > maxScroll {
+		scrollY = maxScroll
+	}
+	if scrollY < 0 {
+		scrollY = 0
+	}
+
+	// Apply scroll and limit visible lines
+	var visibleLines []string
+	visibleContentLines := availableHeight - 1 // -1 for footer line
+	if visibleContentLines < 1 {
+		visibleContentLines = 1
+	}
+
+	if needsScroll {
+		end := scrollY + visibleContentLines
+		if end > len(lines) {
+			end = len(lines)
+		}
+		start := scrollY
+		if start < 0 {
+			start = 0
+		}
+		visibleLines = lines[start:end]
+	} else {
+		visibleLines = lines
+	}
+
+	var b strings.Builder
+	for _, line := range visibleLines {
+		b.WriteString(line)
+		b.WriteString("\n")
+	}
+
+	// Footer with scroll indicator
+	if needsScroll {
+		scrollIndicator := helpStyle.Render(fmt.Sprintf("↑↓ scroll • %d/%d • ? to close", scrollY+1, maxScroll+1))
+		b.WriteString(scrollIndicator)
+	} else {
+		b.WriteString(helpStyle.Render("Press ? to close"))
+	}
 
 	content := b.String()
 
-	// Calculate overlay dimensions
-	overlayWidth := 50
-	if overlayWidth > width-4 {
-		overlayWidth = width - 4
-	}
-
+	// Render the styled overlay
 	styled := helpOverlayStyle.Width(overlayWidth).Render(content)
 
-	// Center the overlay
-	return lipgloss.Place(width, height, lipgloss.Center, lipgloss.Center, styled)
+	// Center horizontally by adding padding
+	styledLines := strings.Split(styled, "\n")
+	styledWidth := lipgloss.Width(styled)
+	leftPad := (width - styledWidth) / 2
+	if leftPad < 0 {
+		leftPad = 0
+	}
+	padding := strings.Repeat(" ", leftPad)
+
+	var result strings.Builder
+	for i, line := range styledLines {
+		if i >= height {
+			break // Don't exceed terminal height
+		}
+		result.WriteString(padding)
+		result.WriteString(line)
+		if i < len(styledLines)-1 && i < height-1 {
+			result.WriteString("\n")
+		}
+	}
+
+	return result.String()
+}
+
+// HelpContentHeight returns the total number of lines in the help content.
+func HelpContentHeight(sections []helpSection) int {
+	count := 1 // Title
+	for _, section := range sections {
+		count++ // Section title
+		count += len(section.entries)
+	}
+	count++ // Empty line before footer
+	count++ // Footer
+	return count
 }

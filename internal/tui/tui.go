@@ -44,8 +44,9 @@ type Model struct {
 	statusMsg   string
 	statusError bool
 
-	// Help visibility
-	showHelp bool
+	// Help state
+	showHelp  bool
+	helpModel HelpModel
 
 	// File watching
 	ticketsPath    string
@@ -66,6 +67,7 @@ func New(store *storage.Store, cfg *config.Config, ticketsPath string) Model {
 		store:          store,
 		config:         cfg,
 		keys:           DefaultKeyMap(),
+		helpModel:      NewHelp(),
 		ticketsPath:    ticketsPath,
 		watcherChan:    watchChan,
 		watcherCleanup: cleanup,
@@ -106,6 +108,36 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.statusMsg = ""
 		m.statusError = false
 
+		// Handle help overlay navigation first
+		if m.showHelp {
+			switch {
+			case key.Matches(msg, m.keys.Help):
+				m.showHelp = false
+				m.helpModel.ResetScroll()
+				return m, nil
+			case key.Matches(msg, m.keys.Up):
+				m.helpModel.ScrollUp()
+				return m, nil
+			case key.Matches(msg, m.keys.Down):
+				sections := m.getHelpSections()
+				contentHeight := HelpContentHeight(sections)
+				visibleHeight := m.height - 6 // Account for overlay padding/border
+				m.helpModel.ScrollDown(contentHeight, visibleHeight)
+				return m, nil
+			case key.Matches(msg, m.keys.Quit):
+				if msg.String() == "ctrl+c" {
+					return m, tea.Quit
+				}
+				// 'q' closes help instead of quitting
+				m.showHelp = false
+				m.helpModel.ResetScroll()
+				return m, nil
+			default:
+				// Ignore other keys while help is open
+				return m, nil
+			}
+		}
+
 		// Global key handling
 		switch {
 		case key.Matches(msg, m.keys.Quit):
@@ -114,7 +146,8 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				return m, tea.Quit
 			}
 		case key.Matches(msg, m.keys.Help):
-			m.showHelp = !m.showHelp
+			m.showHelp = true
+			m.helpModel.ResetScroll()
 			return m, nil
 		}
 
@@ -228,16 +261,8 @@ func (m Model) View() string {
 
 	// Help overlay (rendered on top if active)
 	if m.showHelp {
-		var sections []helpSection
-		switch m.view {
-		case viewList:
-			sections = ListFullHelp()
-		case viewDetail:
-			sections = DetailFullHelp()
-		case viewCreate, viewEdit:
-			sections = FormFullHelp()
-		}
-		return RenderHelp(sections, m.width, m.height)
+		sections := m.getHelpSections()
+		return RenderHelpWithScroll(sections, m.width, m.height, m.helpModel.ScrollY())
 	}
 
 	return b.String()
@@ -317,4 +342,18 @@ func renderStatusLine(width int, left, right string) string {
 		gap = 0
 	}
 	return left + strings.Repeat(" ", gap) + right
+}
+
+// getHelpSections returns the appropriate help sections for the current view.
+func (m Model) getHelpSections() []helpSection {
+	switch m.view {
+	case viewList:
+		return ListFullHelp()
+	case viewDetail:
+		return DetailFullHelp()
+	case viewCreate, viewEdit:
+		return FormFullHelp()
+	default:
+		return ListFullHelp()
+	}
 }
