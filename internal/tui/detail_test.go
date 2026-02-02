@@ -412,6 +412,76 @@ func TestDetailModel_Update_SetFeature(t *testing.T) {
 	}
 }
 
+func TestDetailModel_SetPriorityDirect(t *testing.T) {
+	store := setupTestStore(t)
+
+	tk, err := ticket.New("TH", "Test ticket", "Description", ticket.TypeTask, 3, nil, "")
+	if err != nil {
+		t.Fatalf("ticket.New() error = %v", err)
+	}
+	if err := store.Add(tk); err != nil {
+		t.Fatalf("store.Add() error = %v", err)
+	}
+
+	m := NewDetailModel(store)
+	m.SetSize(80, 24)
+	m.SetTicketID(tk.ID)
+
+	cmd := m.LoadTicket()
+	msg := cmd()
+	m, _ = m.Update(msg)
+
+	// Press '0' to set priority to 0
+	m, cmd = m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune("0")})
+	if cmd == nil {
+		t.Fatal("expected set priority 0 to return a command")
+	}
+
+	resultMsg := cmd()
+	updateMsg, ok := resultMsg.(TicketPriorityUpdatedMsg)
+	if !ok {
+		t.Fatalf("expected TicketPriorityUpdatedMsg, got %T", resultMsg)
+	}
+	if updateMsg.NewPriority != 0 {
+		t.Errorf("expected new priority 0, got %d", updateMsg.NewPriority)
+	}
+}
+
+func TestDetailModel_SetPriority5(t *testing.T) {
+	store := setupTestStore(t)
+
+	tk, err := ticket.New("TH", "Test ticket", "Description", ticket.TypeTask, 1, nil, "")
+	if err != nil {
+		t.Fatalf("ticket.New() error = %v", err)
+	}
+	if err := store.Add(tk); err != nil {
+		t.Fatalf("store.Add() error = %v", err)
+	}
+
+	m := NewDetailModel(store)
+	m.SetSize(80, 24)
+	m.SetTicketID(tk.ID)
+
+	cmd := m.LoadTicket()
+	msg := cmd()
+	m, _ = m.Update(msg)
+
+	// Press '5' to set priority to 5
+	m, cmd = m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune("5")})
+	if cmd == nil {
+		t.Fatal("expected set priority 5 to return a command")
+	}
+
+	resultMsg := cmd()
+	updateMsg, ok := resultMsg.(TicketPriorityUpdatedMsg)
+	if !ok {
+		t.Fatalf("expected TicketPriorityUpdatedMsg, got %T", resultMsg)
+	}
+	if updateMsg.NewPriority != 5 {
+		t.Errorf("expected new priority 5, got %d", updateMsg.NewPriority)
+	}
+}
+
 func TestDetailModel_View(t *testing.T) {
 	store := setupTestStore(t)
 

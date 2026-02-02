@@ -220,6 +220,30 @@ func (m DetailModel) Update(msg tea.Msg) (DetailModel, tea.Cmd) {
 			if m.ticket != nil {
 				return m, m.updateType(ticket.TypeCleanup)
 			}
+		case key.Matches(msg, m.keys.SetPriority0):
+			if m.ticket != nil {
+				return m, m.updatePriority(0)
+			}
+		case key.Matches(msg, m.keys.SetPriority1):
+			if m.ticket != nil {
+				return m, m.updatePriority(1)
+			}
+		case key.Matches(msg, m.keys.SetPriority2):
+			if m.ticket != nil {
+				return m, m.updatePriority(2)
+			}
+		case key.Matches(msg, m.keys.SetPriority3):
+			if m.ticket != nil {
+				return m, m.updatePriority(3)
+			}
+		case key.Matches(msg, m.keys.SetPriority4):
+			if m.ticket != nil {
+				return m, m.updatePriority(4)
+			}
+		case key.Matches(msg, m.keys.SetPriority5):
+			if m.ticket != nil {
+				return m, m.updatePriority(5)
+			}
 		}
 	}
 

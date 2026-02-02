@@ -56,6 +56,7 @@ func ListFullHelp() []helpSection {
 				{"c", "Close selected ticket"},
 				{"+/=", "Increase priority (lower number)"},
 				{"-/_", "Decrease priority (higher number)"},
+				{"0-5", "Set priority directly"},
 			},
 		},
 		{
@@ -108,6 +109,7 @@ func DetailFullHelp() []helpSection {
 				{"m", "Add comment"},
 				{"+/=", "Increase priority"},
 				{"-/_", "Decrease priority"},
+				{"0-5", "Set priority directly"},
 			},
 		},
 		{

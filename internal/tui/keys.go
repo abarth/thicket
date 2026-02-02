@@ -39,6 +39,14 @@ type KeyMap struct {
 	SetEpic    key.Binding
 	SetCleanup key.Binding
 
+	// Direct priority settings
+	SetPriority0 key.Binding
+	SetPriority1 key.Binding
+	SetPriority2 key.Binding
+	SetPriority3 key.Binding
+	SetPriority4 key.Binding
+	SetPriority5 key.Binding
+
 	// Form navigation
 	NextField key.Binding
 	PrevField key.Binding
@@ -148,6 +156,30 @@ func DefaultKeyMap() KeyMap {
 		SetCleanup: key.NewBinding(
 			key.WithKeys("C"),
 			key.WithHelp("C", "set cleanup"),
+		),
+		SetPriority0: key.NewBinding(
+			key.WithKeys("0"),
+			key.WithHelp("0", "set priority 0"),
+		),
+		SetPriority1: key.NewBinding(
+			key.WithKeys("1"),
+			key.WithHelp("1", "set priority 1"),
+		),
+		SetPriority2: key.NewBinding(
+			key.WithKeys("2"),
+			key.WithHelp("2", "set priority 2"),
+		),
+		SetPriority3: key.NewBinding(
+			key.WithKeys("3"),
+			key.WithHelp("3", "set priority 3"),
+		),
+		SetPriority4: key.NewBinding(
+			key.WithKeys("4"),
+			key.WithHelp("4", "set priority 4"),
+		),
+		SetPriority5: key.NewBinding(
+			key.WithKeys("5"),
+			key.WithHelp("5", "set priority 5"),
 		),
 		NextField: key.NewBinding(
 			key.WithKeys("tab"),

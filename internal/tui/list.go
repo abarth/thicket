@@ -330,6 +330,36 @@ func (m ListModel) Update(msg tea.Msg) (ListModel, tea.Cmd) {
 				t := m.tickets[m.cursor]
 				return m, m.updateType(t.ID, ticket.TypeCleanup)
 			}
+		case key.Matches(msg, m.keys.SetPriority0):
+			if len(m.tickets) > 0 && m.cursor < len(m.tickets) {
+				t := m.tickets[m.cursor]
+				return m, m.updatePriority(t.ID, 0)
+			}
+		case key.Matches(msg, m.keys.SetPriority1):
+			if len(m.tickets) > 0 && m.cursor < len(m.tickets) {
+				t := m.tickets[m.cursor]
+				return m, m.updatePriority(t.ID, 1)
+			}
+		case key.Matches(msg, m.keys.SetPriority2):
+			if len(m.tickets) > 0 && m.cursor < len(m.tickets) {
+				t := m.tickets[m.cursor]
+				return m, m.updatePriority(t.ID, 2)
+			}
+		case key.Matches(msg, m.keys.SetPriority3):
+			if len(m.tickets) > 0 && m.cursor < len(m.tickets) {
+				t := m.tickets[m.cursor]
+				return m, m.updatePriority(t.ID, 3)
+			}
+		case key.Matches(msg, m.keys.SetPriority4):
+			if len(m.tickets) > 0 && m.cursor < len(m.tickets) {
+				t := m.tickets[m.cursor]
+				return m, m.updatePriority(t.ID, 4)
+			}
+		case key.Matches(msg, m.keys.SetPriority5):
+			if len(m.tickets) > 0 && m.cursor < len(m.tickets) {
+				t := m.tickets[m.cursor]
+				return m, m.updatePriority(t.ID, 5)
+			}
 		}
 	}
 
